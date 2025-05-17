@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1746992364976,
-      "tag": "0000_steady_fallen_one",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1747241595552,
-      "tag": "0001_legal_tag",
+      "when": 1747476925267,
+      "tag": "0000_swift_mojo",
       "breakpoints": true
     }
   ]

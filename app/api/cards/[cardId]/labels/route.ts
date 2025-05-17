@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { cards, cardLabels, labels, boards, boardMembers } from "@/lib/schema"
-import { currentUserOrThrow } from "@/lib/auth"
-import { and, eq, or } from "drizzle-orm"
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { currentUserOrThrow } from "@/lib/auth";
+import { sql } from "drizzle-orm";
 
 export async function POST(req: Request, { params }: { params: Promise<{ cardId: number }> }) {
   try {
@@ -18,88 +17,64 @@ export async function POST(req: Request, { params }: { params: Promise<{ cardId:
       return new NextResponse("Label ID is required", { status: 400 });
     }
 
-    const parsedLabelId = Number.parseInt(labelId);
+    const parsedLabelId = Number(labelId);
     if (isNaN(parsedLabelId)) {
       return new NextResponse("Invalid label ID", { status: 400 });
     }
 
-    const card = await db.query.cards.findFirst({
-      where: eq(cards.id, cardId),
-      with: {
-        list: {
-          with: {
-            board: true,
-          },
-        },
-      },
-    });
-
+    const cardRes = await db.execute(sql`
+      SELECT c.*, l.board_id
+      FROM cards c
+      JOIN lists l ON c.list_id = l.id
+      WHERE c.id = ${cardId}
+    `);
+    const card = cardRes.rows[0];
     if (!card) {
       return new NextResponse("Card not found", { status: 404 });
     }
 
-    const boardId = card.list.boardId;
-
-    // Check if user is the board owner
-    const isBoardOwner = await db.query.boards.findFirst({
-      where: and(
-        eq(boards.id, boardId),
-        eq(boards.createdBy, user.id)
-      ),
-    });
-
-    let hasAccess = false;
-
-    if (isBoardOwner) {
-      hasAccess = true;
-    } else {
-      // Check if user is a board member
-      const isBoardMember = await db.query.boardMembers.findFirst({
-        where: and(
-          eq(boardMembers.boardId, boardId),
-          eq(boardMembers.memberId, user.id)
-        ),
-      });
-
-      if (isBoardMember) {
-        hasAccess = true;
-      }
+    const boardRes = await db.execute(sql`
+      SELECT * FROM boards WHERE id = ${card.board_id}
+    `);
+    const board = boardRes.rows[0];
+    if (!board) {
+      return new NextResponse("Board not found", { status: 404 });
     }
 
-    if (!hasAccess) {
+    const memberCheck = await db.execute(sql`
+      SELECT 1 FROM board_members
+      WHERE board_id = ${card.board_id} AND member_id = ${user.id}
+      LIMIT 1
+    `);
+    const isCreator = board.created_by === user.id;
+    const isBoardMember = !!memberCheck.rows[0];
+
+    if (!isCreator && !isBoardMember) {
       return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    // Check if label exists
-    const label = await db.query.labels.findFirst({
-      where: eq(labels.id, parsedLabelId),
-    });
-
-    if (!label) {
+    const labelCheck = await db.execute(sql`
+      SELECT * FROM labels WHERE id = ${parsedLabelId}
+    `);
+    if (!labelCheck.rows[0]) {
       return new NextResponse("Label not found", { status: 404 });
     }
 
-    // Check if the label is already assigned to the card
-    const existingCardLabel = await db.query.cardLabels.findFirst({
-      where: and(
-        eq(cardLabels.cardId, cardId),
-        eq(cardLabels.labelId, parsedLabelId)
-      ),
-    });
-
-    if (existingCardLabel) {
+    const existing = await db.execute(sql`
+      SELECT * FROM card_labels
+      WHERE card_id = ${cardId} AND label_id = ${parsedLabelId}
+    `);
+    if (existing.rows[0]) {
       return new NextResponse("Label already assigned to card", { status: 400 });
     }
 
-    const cardLabel = await db
-      .insert(cardLabels)
-      .values({
-        cardId,
-        labelId: parsedLabelId,
-      })
-      .returning();
+    const insertRes = await db.execute(sql`
+      INSERT INTO card_labels (card_id, label_id)
+      VALUES (${cardId}, ${parsedLabelId})
+      RETURNING *
+    `);
 
-    return NextResponse.json(cardLabel[0]);
+    return NextResponse.json(insertRes.rows[0]);
   } catch (error) {
     console.error("[CARD_LABELS_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
@@ -107,58 +82,65 @@ export async function POST(req: Request, { params }: { params: Promise<{ cardId:
 }
 
 
-export async function DELETE(req: Request, { params }: {params: Promise<{ cardId: number }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ cardId: number }> }) {
   try {
-    const user = await currentUserOrThrow()
-     const { cardId }  = await params
-    const { searchParams } = new URL(req.url)
-    const labelId = searchParams.get("labelId")
+    const user = await currentUserOrThrow();
+    const { cardId } = await params;
+    const { searchParams } = new URL(req.url);
+    const labelId = searchParams.get("labelId");
 
     if (isNaN(cardId)) {
-      return new NextResponse("Invalid card ID", { status: 400 })
+      return new NextResponse("Invalid card ID", { status: 400 });
     }
 
     if (!labelId) {
-      return new NextResponse("Label ID is required", { status: 400 })
+      return new NextResponse("Label ID is required", { status: 400 });
     }
 
-    const parsedLabelId = Number.parseInt(labelId)
+    const parsedLabelId = Number(labelId);
     if (isNaN(parsedLabelId)) {
-      return new NextResponse("Invalid label ID", { status: 400 })
+      return new NextResponse("Invalid label ID", { status: 400 });
     }
 
-    const card = await db.query.cards.findFirst({
-      where: eq(cards.id, cardId),
-      with: {
-        list: {
-          with: {
-            board: true,
-          },
-        },
-      },
-    })
-
+    const cardRes = await db.execute(sql`
+      SELECT c.*, l.board_id
+      FROM cards c
+      JOIN lists l ON c.list_id = l.id
+      WHERE c.id = ${cardId}
+    `);
+    const card = cardRes.rows[0];
     if (!card) {
-      return new NextResponse("Card not found", { status: 404 })
+      return new NextResponse("Card not found", { status: 404 });
     }
 
-    // Check if user has access to the board
-    const boardAccess = await db.query.boards.findFirst({
-      where: and(
-        eq(boards.id, card.list.boardId),
-        or(eq(boards.createdBy, user.id), eq(boardMembers.memberId, user.id)),
-      ),
-    })
-
-    if (!boardAccess) {
-      return new NextResponse("Unauthorized", { status: 403 })
+    const boardRes = await db.execute(sql`
+      SELECT * FROM boards WHERE id = ${card.board_id}
+    `);
+    const board = boardRes.rows[0];
+    if (!board) {
+      return new NextResponse("Board not found", { status: 404 });
     }
 
-    await db.delete(cardLabels).where(and(eq(cardLabels.cardId, cardId), eq(cardLabels.labelId, parsedLabelId)))
+    const memberCheck = await db.execute(sql`
+      SELECT 1 FROM board_members
+      WHERE board_id = ${card.board_id} AND member_id = ${user.id}
+      LIMIT 1
+    `);
+    const isCreator = board.created_by === user.id;
+    const isBoardMember = !!memberCheck.rows[0];
 
-    return new NextResponse(null, { status: 204 })
+    if (!isCreator && !isBoardMember) {
+      return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    await db.execute(sql`
+      DELETE FROM card_labels
+      WHERE card_id = ${cardId} AND label_id = ${parsedLabelId}
+    `);
+
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("[CARD_LABELS_DELETE]", error)
-    return new NextResponse("Internal Error", { status: 500 })
+    console.error("[CARD_LABELS_DELETE]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

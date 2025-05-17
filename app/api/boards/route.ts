@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { boards, boardMembers } from "@/lib/schema"
+import { sql } from "drizzle-orm"
 import { currentUserOrThrow } from "@/lib/auth"
-import { eq, or, and , sql } from "drizzle-orm"
 
 export async function GET(req: Request) {
   try {
@@ -10,14 +9,30 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const workspaceId = searchParams.get("workspaceId")
 
-const userBoards = await db.execute(sql`
-  SELECT b.*
-  FROM boards b
-  WHERE b.created_by = ${user.id} 
-  ${workspaceId ? sql`AND b.workspace_id = ${workspaceId}` : sql``}
-  ORDER BY b.created_at DESC
-`);
-    return NextResponse.json(userBoards.rows)
+    let baseQuery = sql`
+      SELECT DISTINCT boards.*
+      FROM boards
+      LEFT JOIN board_members ON boards.id = board_members.board_id
+      WHERE boards.created_by = ${user.id}
+        OR board_members.member_id = ${user.id}
+    `
+
+    if (workspaceId) {
+      const parsedWorkspaceId = Number.parseInt(workspaceId)
+      if (!isNaN(parsedWorkspaceId)) {
+        baseQuery = sql`
+          SELECT DISTINCT boards.*
+          FROM boards
+          LEFT JOIN board_members ON boards.id = board_members.board_id
+          WHERE (boards.created_by = ${user.id}
+            OR board_members.member_id = ${user.id})
+            AND boards.workspace_id = ${parsedWorkspaceId}
+        `
+      }
+    }
+
+    const result = await db.execute(baseQuery)
+    return NextResponse.json(result.rows)
   } catch (error) {
     console.error("[BOARDS_GET]", error)
     return new NextResponse("Internal Error", { status: 500 })
@@ -42,16 +57,13 @@ export async function POST(req: Request) {
       return new NextResponse("Invalid workspace ID", { status: 400 })
     }
 
-    const board = await db
-      .insert(boards)
-      .values({
-        name,
-        workspaceId: parsedWorkspaceId,
-        createdBy: user.id,
-      })
-      .returning()
+    const insertResult = await db.execute(sql`
+      INSERT INTO boards (name, workspace_id, created_by)
+      VALUES (${name}, ${parsedWorkspaceId}, ${user.id})
+      RETURNING *
+    `)
 
-    return NextResponse.json(board[0])
+    return NextResponse.json(insertResult.rows[0])
   } catch (error) {
     console.error("[BOARDS_POST]", error)
     return new NextResponse("Internal Error", { status: 500 })

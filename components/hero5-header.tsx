@@ -7,7 +7,6 @@ import React from 'react'
 import { cn } from '@/lib/utils'
 import { ModeToggle } from './ThemeToggle'
 import {
-
     SignedIn,
     SignedOut,
     SignInButton,
@@ -16,10 +15,7 @@ import {
   } from '@clerk/nextjs'
 
 const menuItems = [
-    { name: 'Features', href: '#link' },
-    { name: 'Solution', href: '#link' },
-    { name: 'Pricing', href: '#link' },
-    { name: 'About', href: '#link' },
+    { name: 'Boards', href: '/boards' },
 ]
 
 export const HeroHeader = () => {

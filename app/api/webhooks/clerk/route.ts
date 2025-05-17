@@ -43,6 +43,11 @@ export async function POST(req: Request) {
     })
   }
 
+  console.log("Webhook event:")
+
+  const { type } = event
+  console.log("Received webhook event:", type)
+
  switch (event.type) {
     case "user.created": {
       const { id, email_addresses, first_name, last_name } = event.data

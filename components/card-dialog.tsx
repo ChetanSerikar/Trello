@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -12,53 +12,18 @@ import ReactMarkdown from "react-markdown"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
-
-interface UserType {
-  id: string
-  name: string
-  email: string
-}
-
-interface Label {
-  id: number
-  name: string
-  color: string
-}
-
-interface CardMember {
-  cardId: number
-  memberId: string
-  member: UserType
-}
-
-interface CardLabel {
-  cardId: number
-  labelId: number
-  label: Label
-}
-
-interface Card {
-  id: number
-  title: string
-  description: string | null
-  listId: number
-  position: number
-  createdBy: string
-  dueDate: string | null
-  creator: UserType
-  members: CardMember[]
-  labels: CardLabel[]
-}
+import type { Card, User as UserType, Label, CardMember, BoardMember } from "@/lib/types"
 
 interface CardDialogProps {
   card: Card | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSave: (card: Card) => void
-  boardMembers: UserType[]
+  boardMembers:(BoardMember | undefined)[]
+  boardId: string
 }
 
-export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: CardDialogProps) {
+export function CardDialog({ card, open, onOpenChange, onSave, boardMembers , boardId }: CardDialogProps) {
   const [editedCard, setEditedCard] = useState<Card | null>(null)
   const [activeTab, setActiveTab] = useState("edit")
   const [availableLabels, setAvailableLabels] = useState<Label[]>([])
@@ -83,8 +48,8 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
   useEffect(() => {
     if (card) {
       setEditedCard({ ...card })
-      if (card.dueDate) {
-        setDate(new Date(card.dueDate))
+      if (card.due_date) {
+        setDate(new Date(card.due_date))
       } else {
         setDate(undefined)
       }
@@ -131,16 +96,14 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
 
       if (!res.ok) throw new Error("Failed to add member")
 
-      const member = boardMembers.find((m) => m.id === memberId)
+      const member = boardMembers.find((m) => m?.id === memberId)
       if (member) {
         setEditedCard({
           ...editedCard,
           members: [
-            ...editedCard.members,
+            ...(editedCard?.members || []),
             {
-              cardId: editedCard.id,
-              memberId,
-              member,
+              ...member,
             },
           ],
         })
@@ -162,7 +125,7 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
 
       setEditedCard({
         ...editedCard,
-        members: editedCard.members.filter((member) => member.memberId !== memberId),
+        members: (editedCard.members || []).filter((member) => member.id !== memberId),
       })
     } catch (error) {
       console.error("Error removing member:", error)
@@ -214,16 +177,16 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
         id: labelId,
         name: newLabelName,
         color: newLabelColor,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       }
 
       setEditedCard({
         ...editedCard,
         labels: [
-          ...editedCard.labels,
+          ...(editedCard.labels || []),
           {
-            cardId: editedCard.id,
-            labelId,
-            label,
+           ...label,
           },
         ],
       })
@@ -239,7 +202,7 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
     if (!editedCard) return
 
     // Check if label is already added
-    if (editedCard.labels.some((l) => l.labelId === labelId)) return
+    if (editedCard.labels?.some((l) => l.id === labelId)) return
 
     try {
       const res = await fetch(`/api/cards/${editedCard.id}/labels`, {
@@ -257,11 +220,10 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
         setEditedCard({
           ...editedCard,
           labels: [
-            ...editedCard.labels,
+            ...(editedCard.labels || []),
             {
-              cardId: editedCard.id,
-              labelId,
-              label,
+              ...label,
+              createdAt: new Date(),
             },
           ],
         })
@@ -283,7 +245,7 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
 
       setEditedCard({
         ...editedCard,
-        labels: editedCard.labels.filter((label) => label.labelId !== labelId),
+        labels: (editedCard.labels || []).filter((label) => label.id !== labelId),
       })
     } catch (error) {
       console.error("Error removing label:", error)
@@ -310,7 +272,7 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
 
       setEditedCard({
         ...editedCard,
-        dueDate: date ? date.toISOString() : null,
+        due_date: date || null,
       })
     } catch (error) {
       console.error("Error updating due date:", error)
@@ -339,10 +301,11 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
+           <DialogTitle className="sr-only">Card Title</DialogTitle>
           <Input
             value={editedCard.title}
             onChange={(e) => handleTitleChange(e.target.value)}
-            className="text-xl font-semibold mb-2"
+            className="text-xl font-semibold mb-2 mt-5"
           />
         </DialogHeader>
 
@@ -350,19 +313,19 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
           {/* Due Date Section */}
           <div>
             <h3 className="text-sm font-medium mb-2 flex items-center">
-              <Calendar className="h-4 w-4 mr-2" /> Due Date
+              <Calendar  className="h-4 w-4 mr-2" /> Due Date
             </h3>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={`w-full justify-start text-left font-normal ${!date && "text-muted-foreground"}`}
+                  className={`w-full justify-start text-left font-normal ${!editedCard?.due_date && "text-muted-foreground"}`}
                 >
-                  {date ? format(date, "PPP") : "Set due date"}
+                  {editedCard?.due_date ? format(editedCard?.due_date, "PPP") : "Set due date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent mode="single" selected={date} onSelect={handleDateChange} initialFocus />
+                <CalendarComponent mode="single"  selected={editedCard?.due_date ? new Date(editedCard.due_date) : undefined} onSelect={handleDateChange} initialFocus />
               </PopoverContent>
             </Popover>
           </div>
@@ -373,17 +336,17 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
               <User className="h-4 w-4 mr-2" /> Members
             </h3>
             <div className="flex flex-wrap gap-2 mb-2">
-              {editedCard.members.map((member) => (
-                <div key={member.memberId} className="flex items-center bg-slate-100 rounded-full pl-1 pr-2 py-1">
+              {editedCard.members?.map((member) => (
+                <div key={member.id} className="flex items-center border rounded-full pl-1 pr-2 py-1">
                   <Avatar className="h-6 w-6 mr-1">
                     <AvatarImage
-                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.member.name)}&background=random`}
+                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member?.name || "User")}&background=random`}
                     />
-                    <AvatarFallback>{member.member.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{(member?.name || "U").charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <span className="text-sm">{member.member.name}</span>
+                  <span className="text-sm">{member?.name}</span>
                   <button
-                    onClick={() => handleRemoveMember(member.memberId)}
+                    onClick={() => handleRemoveMember(member?.id)}
                     className="ml-1 text-slate-400 hover:text-slate-700"
                   >
                     <X className="h-3 w-3" />
@@ -401,24 +364,24 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
                     <h4 className="text-sm font-medium mb-2">Board Members</h4>
                     <div className="space-y-1">
                       {boardMembers
-                        .filter((member) => !editedCard.members.some((m) => m.memberId === member.id))
+                        .filter((member) => !editedCard.members?.some((m) => m.id === member?.id))
                         .map((member) => (
                           <Button
-                            key={member.id}
+                            key={member?.id}
                             variant="ghost"
                             className="w-full justify-start"
-                            onClick={() => handleAddMember(member.id)}
+                            onClick={() => handleAddMember(member?.id as string)}
                           >
                             <Avatar className="h-6 w-6 mr-2">
                               <AvatarImage
-                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random`}
+                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member?.name || "User")}&background=random`}
                               />
-                              <AvatarFallback>{member.name.charAt(0).toUpperCase()}</AvatarFallback>
+                              <AvatarFallback>{(member?.name || "U").charAt(0).toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">{member.name}</span>
+                            <span className="text-sm">{member?.name}</span>
                           </Button>
                         ))}
-                      {boardMembers.filter((member) => !editedCard.members.some((m) => m.memberId === member.id))
+                      {boardMembers.filter((member) => !editedCard.members?.some((m) => m.id === member?.id))
                         .length === 0 && <p className="text-sm text-muted-foreground p-2">All members added</p>}
                     </div>
                   </div>
@@ -433,18 +396,18 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
               <Tag className="h-4 w-4 mr-2" /> Labels
             </h3>
             <div className="flex flex-wrap gap-2 mb-2">
-              {editedCard.labels.map((cardLabel) => (
+              {editedCard.labels?.map((cardLabel ) => (
                 <div
-                  key={cardLabel.labelId}
-                  className="flex items-center rounded-full pl-2 pr-1 py-1 text-white"
-                  style={{ backgroundColor: cardLabel.label.color }}
+                  key={cardLabel.id}
+                  className="flex items-center  rounded-full px-3 py-1 "
+                  style={{ backgroundColor: cardLabel?.color }}
                 >
-                  <span className="text-sm">{cardLabel.label.name}</span>
+                  <span className="text-sm">{cardLabel?.name}</span>
                   <button
-                    onClick={() => handleRemoveLabel(cardLabel.labelId)}
-                    className="ml-1 text-white/70 hover:text-white"
+                    onClick={() => handleRemoveLabel(cardLabel.id)}
+                    className="ml-1 "
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
               ))}
@@ -459,7 +422,7 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
                     <h4 className="text-sm font-medium mb-2">Available Labels</h4>
                     <div className="space-y-1 max-h-[150px] overflow-y-auto mb-2">
                       {availableLabels
-                        .filter((label) => !editedCard.labels.some((l) => l.labelId === label.id))
+                        .filter((label) => !editedCard.labels?.some((l) => l.id === label.id))
                         .map((label) => (
                           <Button
                             key={label.id}
@@ -471,7 +434,7 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
                             <span className="text-sm">{label.name}</span>
                           </Button>
                         ))}
-                      {availableLabels.filter((label) => !editedCard.labels.some((l) => l.labelId === label.id))
+                      {availableLabels.filter((label) => !editedCard.labels?.some((l) => l.id === label.id))
                         .length === 0 && <p className="text-sm text-muted-foreground p-2">No more labels available</p>}
                     </div>
                     <div className="border-t pt-2">
@@ -525,7 +488,7 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers }: C
               </TabsContent>
               <TabsContent value="preview" className="min-h-[200px] border rounded-md p-3">
                 {editedCard.description ? (
-                  <ReactMarkdown>{editedCard.description}</ReactMarkdown>
+                  <ReactMarkdown >{editedCard.description}</ReactMarkdown>
                 ) : (
                   <div className="text-slate-400 italic">No description yet</div>
                 )}
