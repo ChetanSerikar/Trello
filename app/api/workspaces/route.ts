@@ -1,45 +1,50 @@
-import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { workspaces } from "@/lib/schema"
-import { currentUserOrThrow } from "@/lib/auth"
-import { eq } from "drizzle-orm"
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { sql } from "drizzle-orm";
+import { currentUserOrThrow } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const user = await currentUserOrThrow()
+    const user = await currentUserOrThrow();
 
-    const userWorkspaces = await db.query.workspaces.findMany({
-      where: eq(workspaces.ownerId, user.id),
-      orderBy: (workspaces, { desc }) => [desc(workspaces.createdAt)],
-    })
+    // const userWorkspacesResult = await db.execute(sql`
+    //   SELECT * FROM workspaces
+    //   WHERE "owner_id" = ${user.id}
+    //   ORDER BY "created_at" DESC
+    // `);
+    const userWorkspacesResult = await db.execute(sql`
+      SELECT * FROM workspaces
+      ORDER BY "created_at" DESC
+    `);
 
-    return NextResponse.json(userWorkspaces)
+    console.log("userWorkspacesResult.rows",  userWorkspacesResult.rows);
+    
+
+    return NextResponse.json(userWorkspacesResult.rows);
   } catch (error) {
-    console.error("[WORKSPACES_GET]", error)
-    return new NextResponse("Internal Error", { status: 500 })
+    console.error("[WORKSPACES_GET]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const user = await currentUserOrThrow()
-    const { name } = await req.json()
+    const user = await currentUserOrThrow();
+    const { name } = await req.json();
 
     if (!name) {
-      return new NextResponse("Name is required", { status: 400 })
+      return new NextResponse("Name is required", { status: 400 });
     }
 
-    const workspace = await db
-      .insert(workspaces)
-      .values({
-        name,
-        ownerId: user.id,
-      })
-      .returning()
+    const insertedWorkspaceResult = await db.execute(sql`
+      INSERT INTO workspaces (name, ownerId)
+      VALUES (${name}, ${user.id})
+      RETURNING *
+    `);
 
-    return NextResponse.json(workspace[0])
+    return NextResponse.json(insertedWorkspaceResult.rows[0]);
   } catch (error) {
-    console.error("[WORKSPACES_POST]", error)
-    return new NextResponse("Internal Error", { status: 500 })
+    console.error("[WORKSPACES_POST]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

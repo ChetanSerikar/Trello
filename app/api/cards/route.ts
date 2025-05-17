@@ -1,70 +1,92 @@
-import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { cards, lists, boards, boardMembers } from "@/lib/schema"
-import { currentUserOrThrow } from "@/lib/auth"
-import { and, eq, or } from "drizzle-orm"
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { cards } from "@/lib/schema";
+import { currentUserOrThrow } from "@/lib/auth";
+import { sql } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
-    const user = await currentUserOrThrow()
-    const { title, listId, description } = await req.json()
+    const user = await currentUserOrThrow();
+    const { title, listId, description } = await req.json();
 
     if (!title) {
-      return new NextResponse("Title is required", { status: 400 })
+      return new NextResponse("Title is required", { status: 400 });
     }
 
     if (!listId) {
-      return new NextResponse("List ID is required", { status: 400 })
+      return new NextResponse("List ID is required", { status: 400 });
     }
 
-    const parsedListId = Number.parseInt(listId)
+    const parsedListId = Number.parseInt(listId);
     if (isNaN(parsedListId)) {
-      return new NextResponse("Invalid list ID", { status: 400 })
+      return new NextResponse("Invalid list ID", { status: 400 });
     }
 
-    const list = await db.query.lists.findFirst({
-      where: eq(lists.id, parsedListId),
-      with: {
-        board: true,
-      },
-    })
+    // ✅ Get list and associated boardId via raw SQL
+    const listRes = await db.execute(sql`
+      SELECT board_id
+      FROM lists
+      WHERE id = ${parsedListId}
+      LIMIT 1
+    `);
 
-    if (!list) {
-      return new NextResponse("List not found", { status: 404 })
+    const boardId = listRes.rows[0]?.board_id;
+
+    if (!boardId) {
+      return new NextResponse("List not found", { status: 404 });
     }
 
-    // Check if user has access to the board
-    const boardAccess = await db.query.boards.findFirst({
-      where: and(eq(boards.id, list.boardId),eq(boards.createdBy, user.id)),
-      // where: and(eq(boards.id, list.boardId), or(eq(boards.createdBy, user.id), eq(boardMembers.memberId, user.id))),
-    })
+    // ✅ Raw SQL: check if user has board access (creator or member)
+    const result = await db.execute(sql`
+      SELECT 1
+      FROM boards
+      LEFT JOIN board_members ON boards.id = board_members.board_id
+      WHERE boards.id = ${boardId}
+        AND (
+          boards.created_by = ${user.id}
+          OR board_members.member_id = ${user.id}
+        )
+      LIMIT 1
+    `);
 
+    const boardAccess = result.rows[0];
     if (!boardAccess) {
-      return new NextResponse("Unauthorized", { status: 403 })
+      return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    // Get the highest position to add the new card at the end
-    const existingCards = await db.query.cards.findMany({
-      where: eq(cards.listId, parsedListId),
-      orderBy: (cards, { desc }) => [desc(cards.position)],
-    })
+    // ✅ Raw SQL: Get highest card position in list
+    const positionRes = await db.execute(sql`
+      SELECT position
+      FROM cards
+      WHERE list_id = ${parsedListId}
+      ORDER BY position DESC
+      LIMIT 1
+    `);
 
-    const highestPosition = existingCards.length > 0 ? existingCards[0].position : 0
+    const highestPosition = Number(positionRes.rows[0]?.position) || 0;
 
-    const card = await db
-      .insert(cards)
-      .values({
-        title,
-        description: description || null,
-        listId: parsedListId,
-        position: highestPosition + 1,
-        createdBy: user.id,
-      })
-      .returning()
+    // ✅ Insert new card using Drizzle ORM (or you can use raw SQL if preferred)
+    const insertRes = await db.execute(sql`
+      INSERT INTO cards (title, description, list_id, position, created_by)
+      VALUES (
+        ${title},
+        ${description || null},
+        ${parsedListId},
+        ${highestPosition + 1},
+        ${user.id}
+      )
+      RETURNING *
+    `);
 
-    return NextResponse.json(card[0])
+    await db.execute(sql`
+      INSERT INTO card_members (card_id, member_id)
+      VALUES (${insertRes.rows[0].id}, ${user.id})
+    `);
+
+    const card = insertRes.rows[0];
+    return NextResponse.json(card);
   } catch (error) {
-    console.error("[CARDS_POST]", error)
-    return new NextResponse("Internal Error", { status: 500 })
+    console.error("[CARDS_POST]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

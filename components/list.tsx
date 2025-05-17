@@ -4,61 +4,17 @@ import { useState } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
-import { Card } from "./card"
+import { Card } from "@/components/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, X, MoreHorizontal, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
-// interface CardType {
-//   id: number
-//   title: string
-//   description: string | null
-//   position: number
-//   members: Array<{ id: string; name: string; email: string }>
-//   labels: Array<{ id: number; name: string; color: string }>
-// }
-interface User {
-  id: string
-  name: string
-  email: string
-}
-
-interface Label {
-  id: number
-  name: string
-  color: string
-}
-
-interface CardMember {
-  cardId: number
-  memberId: string
-  member: User
-}
-
-interface CardLabel {
-  cardId: number
-  labelId: number
-  label: Label
-}
-
-interface Card {
-  id: number
-  title: string
-  description: string | null
-  position: number
-  listId: number
-  createdBy: string
-  dueDate: string | null
-  creator: User
-  members: CardMember[]
-  labels: CardLabel[]
-}
+import type { Card as CardType } from "@/lib/types"
 
 interface ListProps {
   id: string
   title: string
-  cards: Card[]
+  cards: CardType[]
   onAddCard: (content: string) => void
   onRemoveCard: (cardId: string) => void
   onRemoveList: () => void
@@ -91,24 +47,26 @@ export function List({ id, title, cards, onAddCard, onRemoveCard, onRemoveList, 
     }
   }
 
+  // console.log("List rendered", { id, title, cards })
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-slate-100 rounded-md shadow-sm p-3 min-w-[272px] max-w-[272px] h-fit flex flex-col ${
+      className={`border-2 rounded-md shadow-sm p-3 min-w-[272px] max-w-[272px] h-fit flex flex-col ${
         isDragging ? "shadow-lg ring-2 ring-slate-200" : "hover:shadow-md"
       } transition-shadow duration-200`}
     >
       <div className="flex items-center justify-between mb-2 cursor-move" {...attributes} {...listeners}>
-        <h3 className="font-medium text-slate-800">{title}</h3>
-        <DropdownMenu>
+        <h3 className="font-medium ">{title}</h3>
+        <DropdownMenu >
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onRemoveList} className="text-red-500 cursor-pointer">
+          <DropdownMenuContent onPointerDown={(e) => e.stopPropagation()} onClick={onRemoveList} align="end">
+            <DropdownMenuItem  className="text-red-500 cursor-pointer">
               <Trash2 className="h-4 w-4 mr-2" />
               Delete List
             </DropdownMenuItem>
@@ -124,8 +82,8 @@ export function List({ id, title, cards, onAddCard, onRemoveCard, onRemoveList, 
               id={`card-${card.id}`}
               title={card.title}
               description={card.description || ""}
-              members={card.members}
-              labels={card.labels}
+              members={card.members || []}
+              labels={card.labels|| []}
               onRemove={() => onRemoveCard(`card-${card.id}`)}
               onClick={() => onCardClick(`card-${card.id}`)}
             />
@@ -160,8 +118,8 @@ export function List({ id, title, cards, onAddCard, onRemoveCard, onRemoveList, 
         </div>
       ) : (
         <Button
-          variant="ghost"
-          className="justify-start text-slate-600 hover:bg-slate-200"
+          variant="outline"
+          className="justify-start "
           onClick={() => setShowNewCardInput(true)}
         >
           <Plus className="h-4 w-4 mr-2" /> Add a card

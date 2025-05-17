@@ -1,14 +1,5 @@
-// schema.ts
-import {
-  pgTable,
-  serial,
-  text,
-  timestamp,
-  integer,
-  varchar,
-  primaryKey
-} from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { pgTable, serial, text, timestamp, integer, varchar, primaryKey } from "drizzle-orm/pg-core"
+import { relations } from "drizzle-orm"
 
 // Users (Clerk)
 export const users = pgTable("users", {
@@ -17,41 +8,43 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+})
 
 export const workspaces = pgTable("workspaces", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   ownerId: varchar("owner_id", { length: 255 })
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+})
 
 export const boards = pgTable("boards", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   workspaceId: integer("workspace_id")
     .notNull()
-    .references(() => workspaces.id, { onDelete: 'cascade' }),
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   createdBy: varchar("created_by", { length: 255 })
     .notNull()
-    .references(() => users.id, { onDelete: 'set null' }),
+    .references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+})
 
 export const lists = pgTable("lists", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   boardId: integer("board_id")
     .notNull()
-    .references(() => boards.id, { onDelete: 'cascade' }),
+    .references(() => boards.id, { onDelete: "cascade" }),
   position: integer("position").notNull(),
+  createdBy: varchar("created_by", { length: 255 }).notNull()
+    .references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+})
 
 export const cards = pgTable("cards", {
   id: serial("id").primaryKey(),
@@ -59,15 +52,15 @@ export const cards = pgTable("cards", {
   description: text("description"),
   listId: integer("list_id")
     .notNull()
-    .references(() => lists.id, { onDelete: 'cascade' }),
+    .references(() => lists.id, { onDelete: "cascade" }),
   position: integer("position").notNull(),
   createdBy: varchar("created_by", { length: 255 })
     .notNull()
-    .references(() => users.id, { onDelete: 'set null' }),
+    .references(() => users.id, { onDelete: "set null" }),
   dueDate: timestamp("due_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+})
 
 export const labels = pgTable("labels", {
   id: serial("id").primaryKey(),
@@ -78,50 +71,55 @@ export const labels = pgTable("labels", {
 })
 
 // --- Card ↔ Labels (Many-to-Many)
-export const cardLabels = pgTable("card_labels", {
-  cardId: integer("card_id")
-    .notNull()
-    .references(() => cards.id, { onDelete: "cascade" }),
-  labelId: integer("label_id")
-    .notNull()
-    .references(() => labels.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.cardId, table.labelId] })
-}))
+export const cardLabels = pgTable("card_labels", 
+   {
+    cardId: integer("card_id")
+      .notNull()
+      .references(() => cards.id, { onDelete: "cascade" }),
+    labelId: integer("label_id")
+      .notNull()
+      .references(() => labels.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+
+});
+
 
 // --- Card ↔ Members (Many-to-Many)
-export const cardMembers = pgTable("card_members", {
-  cardId: integer("card_id")
-    .notNull()
-    .references(() => cards.id, { onDelete: "cascade" }),
-  memberId: varchar("member_id", { length: 255 })
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.cardId, table.memberId] })
-}))
+export const cardMembers = pgTable(
+  "card_members",
+  {
+     id: serial("id").primaryKey(),
+    cardId: integer("card_id")
+      .notNull()
+      .references(() => cards.id, { onDelete: "cascade" }),
+    memberId: varchar("member_id", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  }
+)
 
 // --- Board ↔ Members (Many-to-Many)
-export const boardMembers = pgTable("board_members", {
-  boardId: integer("board_id")
-    .notNull()
-    .references(() => boards.id, { onDelete: "cascade" }),
-  memberId: varchar("member_id", { length: 255 })
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.boardId, table.memberId] })
-}))
+export const boardMembers = pgTable(
+  "board_members",
+  {
+     id: serial("id").primaryKey(),
+    boardId: integer("board_id")
+      .notNull()
+      .references(() => boards.id, { onDelete: "cascade" }),
+    memberId: varchar("member_id", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  }
+)
 
-// relations.ts
+// Relations
 export const userRelations = relations(users, ({ many }) => ({
   workspaces: many(workspaces),
   boards: many(boards),
   cards: many(cards),
-}));
+}))
 
 export const workspaceRelations = relations(workspaces, ({ one, many }) => ({
   owner: one(users, {
@@ -129,7 +127,7 @@ export const workspaceRelations = relations(workspaces, ({ one, many }) => ({
     references: [users.id],
   }),
   boards: many(boards),
-}));
+}))
 
 export const boardRelations = relations(boards, ({ one, many }) => ({
   workspace: one(workspaces, {
@@ -141,18 +139,22 @@ export const boardRelations = relations(boards, ({ one, many }) => ({
     references: [users.id],
   }),
   lists: many(lists),
-  members: many(boardMembers), 
-}));
+  members: many(boardMembers),
+}))
 
 export const listRelations = relations(lists, ({ one, many }) => ({
   board: one(boards, {
     fields: [lists.boardId],
     references: [boards.id],
   }),
+  creator: one(users, {
+    fields: [lists.createdBy],
+    references: [users.id],
+  }),
   cards: many(cards),
-}));
+}))
 
-export const cardRelations = relations(cards, ({ one , many}) => ({
+export const cardRelations = relations(cards, ({ one, many }) => ({
   list: one(lists, {
     fields: [cards.listId],
     references: [lists.id],
@@ -163,7 +165,7 @@ export const cardRelations = relations(cards, ({ one , many}) => ({
   }),
   labels: many(cardLabels),
   members: many(cardMembers),
-}));
+}))
 
 export const labelRelations = relations(labels, ({ many }) => ({
   cards: many(cardLabels),

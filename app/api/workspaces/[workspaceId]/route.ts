@@ -1,93 +1,123 @@
-import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { workspaces } from "@/lib/schema"
-import { currentUserOrThrow } from "@/lib/auth"
-import { and, eq } from "drizzle-orm"
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { sql } from "drizzle-orm";
+import { currentUserOrThrow } from "@/lib/auth";
 
-export async function GET(req: Request, { params }: { params: { workspaceId: string } }) {
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ workspaceId: number }> }
+) {
   try {
-    const user = await currentUserOrThrow()
-    const workspaceId = Number.parseInt(params.workspaceId)
+    const user = await currentUserOrThrow();
+    const { workspaceId } = await params;
 
     if (isNaN(workspaceId)) {
-      return new NextResponse("Invalid workspace ID", { status: 400 })
+      return new NextResponse("Invalid workspace ID", { status: 400 });
     }
 
-    const workspace = await db.query.workspaces.findFirst({
-      where: and(eq(workspaces.id, workspaceId), eq(workspaces.ownerId, user.id)),
-    })
+    // const workspaceResult = await db.execute(sql`
+    //   SELECT * FROM workspaces
+    //   WHERE id = ${workspaceId} AND ownerId = ${user.id}
+    //   LIMIT 1
+    // `);
+    const workspaceResult = await db.execute(sql`
+      SELECT * FROM workspaces
+      WHERE id = ${workspaceId} 
+      LIMIT 1
+    `);
 
+    const workspace = workspaceResult.rows[0];
+      console.log("workspaceResult.rows", workspaceResult.rows);
     if (!workspace) {
-      return new NextResponse("Workspace not found", { status: 404 })
+      return new NextResponse("Workspace not found", { status: 404 });
     }
 
-    return NextResponse.json(workspace)
+    return NextResponse.json(workspace);
   } catch (error) {
-    console.error("[WORKSPACE_GET]", error)
-    return new NextResponse("Internal Error", { status: 500 })
+    console.error("[WORKSPACE_GET]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { workspaceId: string } }) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ workspaceId: number }> }
+) {
   try {
-    const user = await currentUserOrThrow()
-    const workspaceId = Number.parseInt(params.workspaceId)
-    const { name } = await req.json()
+    const user = await currentUserOrThrow();
+    const { workspaceId } = await params;
+    const { name } = await req.json();
 
     if (isNaN(workspaceId)) {
-      return new NextResponse("Invalid workspace ID", { status: 400 })
+      return new NextResponse("Invalid workspace ID", { status: 400 });
     }
 
     if (!name) {
-      return new NextResponse("Name is required", { status: 400 })
+      return new NextResponse("Name is required", { status: 400 });
     }
 
-    const workspace = await db.query.workspaces.findFirst({
-      where: and(eq(workspaces.id, workspaceId), eq(workspaces.ownerId, user.id)),
-    })
+    // Verify workspace ownership
+    const workspaceResult = await db.execute(sql`
+      SELECT * FROM workspaces
+      WHERE id = ${workspaceId} AND ownerId = ${user.id}
+      LIMIT 1
+    `);
+
+    const workspace = workspaceResult.rows[0];
 
     if (!workspace) {
-      return new NextResponse("Workspace not found", { status: 404 })
+      return new NextResponse("Workspace not found", { status: 404 });
     }
 
-    const updatedWorkspace = await db
-      .update(workspaces)
-      .set({
-        name,
-        updatedAt: new Date(),
-      })
-      .where(eq(workspaces.id, workspaceId))
-      .returning()
+    // Update workspace
+    const updatedWorkspaceResult = await db.execute(sql`
+      UPDATE workspaces
+      SET name = ${name}, updatedAt = NOW()
+      WHERE id = ${workspaceId}
+      RETURNING *
+    `);
 
-    return NextResponse.json(updatedWorkspace[0])
+    return NextResponse.json(updatedWorkspaceResult.rows[0]);
   } catch (error) {
-    console.error("[WORKSPACE_PATCH]", error)
-    return new NextResponse("Internal Error", { status: 500 })
+    console.error("[WORKSPACE_PATCH]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { workspaceId: string } }) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ workspaceId: number }> }
+) {
   try {
-    const user = await currentUserOrThrow()
-    const workspaceId = Number.parseInt(params.workspaceId)
+    const user = await currentUserOrThrow();
+    const { workspaceId } = await params;
 
     if (isNaN(workspaceId)) {
-      return new NextResponse("Invalid workspace ID", { status: 400 })
+      return new NextResponse("Invalid workspace ID", { status: 400 });
     }
 
-    const workspace = await db.query.workspaces.findFirst({
-      where: and(eq(workspaces.id, workspaceId), eq(workspaces.ownerId, user.id)),
-    })
+    // Verify workspace ownership
+    const workspaceResult = await db.execute(sql`
+      SELECT * FROM workspaces
+      WHERE id = ${workspaceId} AND ownerId = ${user.id}
+      LIMIT 1
+    `);
+
+    const workspace = workspaceResult.rows[0];
 
     if (!workspace) {
-      return new NextResponse("Workspace not found", { status: 404 })
+      return new NextResponse("Workspace not found", { status: 404 });
     }
 
-    await db.delete(workspaces).where(eq(workspaces.id, workspaceId))
+    // Delete workspace
+    await db.execute(sql`
+      DELETE FROM workspaces
+      WHERE id = ${workspaceId}
+    `);
 
-    return new NextResponse(null, { status: 204 })
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("[WORKSPACE_DELETE]", error)
-    return new NextResponse("Internal Error", { status: 500 })
+    console.error("[WORKSPACE_DELETE]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

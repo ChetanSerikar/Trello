@@ -19,7 +19,7 @@ interface Board {
   id: number
   name: string
   workspaceId: number
-  createdAt: string
+  created_at: string
 }
 
 export default function BoardsPage() {
@@ -150,7 +150,7 @@ export default function BoardsPage() {
                     <Layout className="h-5 w-5 mr-2 text-primary" />
                     {board.name}
                   </CardTitle>
-                  <CardDescription>Created {new Date(board.createdAt).toLocaleDateString()}</CardDescription>
+                  <CardDescription>Created {new Date(board.created_at).toLocaleDateString()}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">Click to view board details and lists</p>

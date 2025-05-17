@@ -1,130 +1,136 @@
-import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { cards, cardMembers, users, boards, boardMembers } from "@/lib/schema"
-import { currentUserOrThrow } from "@/lib/auth"
-import { and, eq, or } from "drizzle-orm"
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { currentUserOrThrow } from "@/lib/auth";
+import { sql } from "drizzle-orm";
 
-export async function POST(req: Request, { params }: {params: Promise<{ cardId: number }> }) {
+export async function POST(req: Request, { params }: { params: Promise<{ cardId: number }> }) {
   try {
-    const user = await currentUserOrThrow()
-    const { cardId }  = await params
-    const { memberId } = await req.json()
+    const user = await currentUserOrThrow();
+    const { cardId } = await params;
+    const { memberId } = await req.json();
 
     if (isNaN(cardId)) {
-      return new NextResponse("Invalid card ID", { status: 400 })
+      return new NextResponse("Invalid card ID", { status: 400 });
     }
 
     if (!memberId) {
-      return new NextResponse("Member ID is required", { status: 400 })
+      return new NextResponse("Member ID is required", { status: 400 });
     }
 
-    const card = await db.query.cards.findFirst({
-      where: eq(cards.id, cardId),
-      with: {
-        list: {
-          with: {
-            board: true,
-          },
-        },
-      },
-    })
-
+    const cardRes = await db.execute(sql`
+      SELECT c.*, l.board_id
+      FROM cards c
+      JOIN lists l ON c.list_id = l.id
+      WHERE c.id = ${cardId}
+    `);
+    const card = cardRes.rows[0];
     if (!card) {
-      return new NextResponse("Card not found", { status: 404 })
+      return new NextResponse("Card not found", { status: 404 });
     }
 
-    // Check if user has access to the board
-    const boardAccess = await db.query.boards.findFirst({
-      where: and(
-        eq(boards.id, card.list.boardId),
-        or(eq(boards.createdBy, user.id), eq(boardMembers.memberId, user.id)),
-      ),
-    })
-
-    if (!boardAccess) {
-      return new NextResponse("Unauthorized", { status: 403 })
+    const boardRes = await db.execute(sql`
+      SELECT * FROM boards WHERE id = ${card.board_id}
+    `);
+    const board = boardRes.rows[0];
+    if (!board) {
+      return new NextResponse("Board not found", { status: 404 });
     }
 
-    // Check if member exists
-    const member = await db.query.users.findFirst({
-      where: eq(users.id, memberId),
-    })
+    const isBoardMemberRes = await db.execute(sql`
+      SELECT 1 FROM board_members
+      WHERE board_id = ${card.board_id} AND member_id = ${user.id}
+      LIMIT 1
+    `);
+    const isCreator = board.created_by === user.id;
+    const isBoardMember = !!isBoardMemberRes.rows[0];
 
-    if (!member) {
-      return new NextResponse("Member not found", { status: 404 })
+    if (!isCreator && !isBoardMember) {
+      return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    // Check if the member is already assigned to the card
-    const existingCardMember = await db.query.cardMembers.findFirst({
-      where: and(eq(cardMembers.cardId, cardId), eq(cardMembers.memberId, memberId)),
-    })
-
-    if (existingCardMember) {
-      return new NextResponse("Member already assigned to card", { status: 400 })
+    const memberRes = await db.execute(sql`
+      SELECT * FROM users WHERE id = ${memberId}
+    `);
+    if (!memberRes.rows[0]) {
+      return new NextResponse("Member not found", { status: 404 });
     }
 
-    const cardMember = await db
-      .insert(cardMembers)
-      .values({
-        cardId,
-        memberId,
-      })
-      .returning()
+    const existingMember = await db.execute(sql`
+      SELECT * FROM card_members
+      WHERE card_id = ${cardId} AND member_id = ${memberId}
+    `);
+    if (existingMember.rows[0]) {
+      return new NextResponse("Member already assigned to card", { status: 400 });
+    }
 
-    return NextResponse.json(cardMember[0])
+    const insertRes = await db.execute(sql`
+      INSERT INTO card_members (card_id, member_id)
+      VALUES (${cardId}, ${memberId})
+      RETURNING *
+    `);
+
+    return NextResponse.json(insertRes.rows[0]);
   } catch (error) {
-    console.error("[CARD_MEMBERS_POST]", error)
-    return new NextResponse("Internal Error", { status: 500 })
+    console.error("[CARD_MEMBERS_POST]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
-export async function DELETE(req: Request, { params }: {params: Promise<{ cardId: number }> }) {
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ cardId: number }> }) {
   try {
-    const user = await currentUserOrThrow()
-    const { cardId }  = await params
-    const { searchParams } = new URL(req.url)
-    const memberId = searchParams.get("memberId")
+    const user = await currentUserOrThrow();
+    const { cardId } = await params;
+    const { searchParams } = new URL(req.url);
+    const memberId = searchParams.get("memberId");
 
     if (isNaN(cardId)) {
-      return new NextResponse("Invalid card ID", { status: 400 })
+      return new NextResponse("Invalid card ID", { status: 400 });
     }
 
     if (!memberId) {
-      return new NextResponse("Member ID is required", { status: 400 })
+      return new NextResponse("Member ID is required", { status: 400 });
     }
 
-    const card = await db.query.cards.findFirst({
-      where: eq(cards.id, cardId),
-      with: {
-        list: {
-          with: {
-            board: true,
-          },
-        },
-      },
-    })
-
+    const cardRes = await db.execute(sql`
+      SELECT c.*, l.board_id
+      FROM cards c
+      JOIN lists l ON c.list_id = l.id
+      WHERE c.id = ${cardId}
+    `);
+    const card = cardRes.rows[0];
     if (!card) {
-      return new NextResponse("Card not found", { status: 404 })
+      return new NextResponse("Card not found", { status: 404 });
     }
 
-    // Check if user has access to the board
-    const boardAccess = await db.query.boards.findFirst({
-      where: and(
-        eq(boards.id, card.list.boardId),
-        or(eq(boards.createdBy, user.id), eq(boardMembers.memberId, user.id)),
-      ),
-    })
-
-    if (!boardAccess) {
-      return new NextResponse("Unauthorized", { status: 403 })
+    const boardRes = await db.execute(sql`
+      SELECT * FROM boards WHERE id = ${card.board_id}
+    `);
+    const board = boardRes.rows[0];
+    if (!board) {
+      return new NextResponse("Board not found", { status: 404 });
     }
 
-    await db.delete(cardMembers).where(and(eq(cardMembers.cardId, cardId), eq(cardMembers.memberId, memberId)))
+    const isBoardMemberRes = await db.execute(sql`
+      SELECT 1 FROM board_members
+      WHERE board_id = ${card.board_id} AND member_id = ${user.id}
+      LIMIT 1
+    `);
+    const isCreator = board.created_by === user.id;
+    const isBoardMember = !!isBoardMemberRes.rows[0];
 
-    return new NextResponse(null, { status: 204 })
+    if (!isCreator && !isBoardMember) {
+      return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    await db.execute(sql`
+      DELETE FROM card_members
+      WHERE card_id = ${cardId} AND member_id = ${memberId}
+    `);
+
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("[CARD_MEMBERS_DELETE]", error)
-    return new NextResponse("Internal Error", { status: 500 })
+    console.error("[CARD_MEMBERS_DELETE]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

@@ -5,49 +5,14 @@ import { CSS } from "@dnd-kit/utilities"
 import { Card as CardUI } from "@/components/ui/card"
 import { X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import type { User, Label } from "@/lib/types"
 
-interface User {
-  id: string
-  name: string
-  email: string
-}
-
-interface Label {
-  id: number
-  name: string
-  color: string
-}
-
-interface CardMember {
-  cardId: number
-  memberId: string
-  member: User
-}
-
-interface CardLabel {
-  cardId: number
-  labelId: number
-  label: Label
-}
-
-interface Card {
-  id: number
-  title: string
-  description: string | null
-  position: number
-  listId: number
-  createdBy: string
-  dueDate: string | null
-  creator: User
-  members: CardMember[]
-  labels: CardLabel[]
-}
 interface CardProps {
   id: string
   title: string
   description: string
-  members?: Array<{ id: string; name: string; email: string }>
-  labels?: Array<{ id: number; name: string; color: string }>
+  members?: (User | undefined)[] 
+  labels?: (Label | undefined)[] 
   onRemove: () => void
   onClick: () => void
   isDragging?: boolean
@@ -77,11 +42,13 @@ export function Card({
     zIndex: isDragging ? 999 : "auto",
   }
 
+  // console.log("Card rendered", { id, title, description, members, labels })
+
   return (
     <CardUI
       ref={setNodeRef}
       style={style}
-      className={`p-3 bg-white cursor-move group relative ${
+      className={`p-3 border  gap-2 cursor-move group relative ${
         isDragging ? "shadow-lg" : "hover:shadow-md"
       } transition-shadow duration-200`}
       {...attributes}
@@ -98,30 +65,30 @@ export function Card({
         <div className="flex flex-wrap gap-1 mb-2">
           {labels.map((label) => (
             <div
-              key={label.id}
+              key={label?.id}
               className="h-2 w-16 rounded-sm"
-              style={{ backgroundColor: label.color }}
-              title={label.name}
+              style={{ backgroundColor: label?.color }}
+              title={label?.name}
             />
           ))}
         </div>
       )}
 
       {/* Card Title */}
-      <div className="pr-6 mb-2 font-medium cursor-pointer" onPointerDown={(e) => e.stopPropagation()}>{title}</div>
+      <div className="pr-6  font-medium cursor-pointer" onPointerDown={(e) => e.stopPropagation()}>{title}</div>
 
       {/* Card Description (truncated) */}
-      {description && <div className="text-sm text-slate-600 mb-2 line-clamp-2">{description}</div>}
+      {/* {description && <div className="text-sm text-slate-600 mb-2 line-clamp-2">{description}</div>} */}
 
       {/* Members */}
       {members.length > 0 && (
         <div className="flex -space-x-2 mt-2">
           {members.map((member) => (
-            <Avatar key={member.id} className="h-6 w-6 border-2 border-white">
+            <Avatar key={member?.id} className="h-6 w-6 border-2 border-white">
               <AvatarImage
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random`}
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member?.name || "User")}&background=random`}
               />
-              <AvatarFallback className="text-xs">{member.name.charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarFallback className="text-xs">{(member?.name || "U").charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
           ))}
         </div>
@@ -129,11 +96,11 @@ export function Card({
 
       {/* Remove Button */}
       <button
-        onClick={(e) => {
-          e.stopPropagation()
-          e.preventDefault()
+        onClick={() => {
+        
           onRemove()
         }}
+        onPointerDown={(e) => e.stopPropagation()}
         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
         aria-label="Remove card"
       >

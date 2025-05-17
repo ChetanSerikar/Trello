@@ -17,71 +17,18 @@ import {
   sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable"
-import { List as ListType } from "@/components/list"
-import { Card as CardType } from "@/components/card"
+import { List } from "@/components/list"
+import { Card } from "@/components/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, X, ArrowLeft, MoreHorizontal, Loader2 } from "lucide-react"
+import { Plus, X, ArrowLeft, MoreHorizontal, Loader2, ChevronLeftCircle, ChevronLeft } from "lucide-react"
 import { CardDialog } from "@/components/card-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-
-import { useParams } from "next/navigation"
-
-interface User {
-  id: string
-  name: string
-  email: string
-}
-
-interface Label {
-  id: number
-  name: string
-  color: string
-}
-
-interface CardMember {
-  cardId: number
-  memberId: string
-  member: User
-}
-
-interface CardLabel {
-  cardId: number
-  labelId: number
-  label: Label
-}
-
-interface Card {
-  id: number
-  title: string
-  description: string | null
-  position: number
-  listId: number
-  createdBy: string
-  dueDate: string | null
-  creator: User
-  members: CardMember[]
-  labels: CardLabel[]
-}
-
-interface List {
-  id: number
-  name: string
-  position: number
-  boardId: number
-  cards: Card[]
-}
-
-interface Board {
-  id: number
-  name: string
-  workspaceId: number
-  createdBy: string
-  lists: List[]
-  creator: User
-  members: { boardId: number; memberId: string; member: User }[]
-}
+import type { Board, Card as CardType } from "@/lib/types"
+import { useParams } from 'next/navigation'
+import { ModeToggle } from "@/components/ThemeToggle"
+import { cn } from "@/lib/utils"
 
 export default function BoardPage() {
   const params = useParams<{ boardId: string}>()
@@ -97,7 +44,7 @@ export default function BoardPage() {
   const [showNewListInput, setShowNewListInput] = useState(false)
   const [addingList, setAddingList] = useState(false)
 
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null)
+  const [selectedCard, setSelectedCard] = useState<CardType | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const [renameBoardDialogOpen, setRenameBoardDialogOpen] = useState(false)
@@ -145,14 +92,14 @@ export default function BoardPage() {
   const findCardList = (cardId: string) => {
     if (!board) return null
     const numericCardId = Number.parseInt(cardId.replace("card-", ""))
-    return board.lists.find((list) => list.cards.some((card) => card.id === numericCardId))
+    return board.lists?.find((list) => list.cards?.some((card) => card.id === numericCardId))
   }
 
   const findCard = (cardId: string) => {
     if (!board) return null
     const numericCardId = Number.parseInt(cardId.replace("card-", ""))
-    for (const list of board.lists) {
-      const card = list.cards.find((card) => card.id === numericCardId)
+    for (const list of board.lists || []) {
+      const card = list.cards?.find((card) => card.id === numericCardId)
       if (card) return card
     }
     return null
@@ -187,10 +134,10 @@ export default function BoardPage() {
       const activeListId = Number.parseInt(active.id.replace("list-", ""))
       const overListId = Number.parseInt(over.id.replace("list-", ""))
 
-      const activeListIndex = board.lists.findIndex((list) => list.id === activeListId)
-      const overListIndex = board.lists.findIndex((list) => list.id === overListId)
+      const activeListIndex = board.lists?.findIndex((list) => list.id === activeListId) ?? -1
+      const overListIndex = board.lists?.findIndex((list) => list.id === overListId) ?? -1
 
-      if (activeListIndex !== -1 && overListIndex !== -1) {
+      if (activeListIndex !== -1 && overListIndex !== -1 && board.lists) {
         const newLists = arrayMove(board.lists, activeListIndex, overListIndex)
 
         // Update positions
@@ -238,33 +185,36 @@ export default function BoardPage() {
       // If dropping onto a list
       if (over.id.startsWith("list-")) {
         const destinationListId = Number.parseInt(over.id.replace("list-", ""))
-        const destinationList = board.lists.find((list) => list.id === destinationListId)
+        const destinationList = board.lists?.find((list) => list.id === destinationListId)
 
         if (destinationList && sourceList.id !== destinationList.id) {
           // Calculate new position (at the end of the destination list)
           const newPosition =
-            destinationList.cards.length > 0 ? Math.max(...destinationList.cards.map((c) => c.position)) + 1 : 1
+            destinationList.cards && destinationList.cards.length > 0
+              ? Math.max(...destinationList.cards.map((c) => c.position)) + 1
+              : 1
 
           // Find the card
-          const card = sourceList.cards.find((c) => c.id === activeCardId)
+          const card = sourceList.cards?.find((c) => c.id === activeCardId)
 
           if (card) {
             // Optimistically update UI
-            const newSourceCards = sourceList.cards.filter((c) => c.id !== activeCardId)
+            const newSourceCards = sourceList.cards?.filter((c) => c.id !== activeCardId) || []
             const newDestCards = [
-              ...destinationList.cards,
+              ...(destinationList.cards || []),
               { ...card, listId: destinationList.id, position: newPosition },
             ]
 
-            const newLists = board.lists.map((list) => {
-              if (list.id === sourceList.id) {
-                return { ...list, cards: newSourceCards }
-              }
-              if (list.id === destinationList.id) {
-                return { ...list, cards: newDestCards }
-              }
-              return list
-            })
+            const newLists =
+              board.lists?.map((list) => {
+                if (list.id === sourceList.id) {
+                  return { ...list, cards: newSourceCards }
+                }
+                if (list.id === destinationList.id) {
+                  return { ...list, cards: newDestCards }
+                }
+                return list
+              }) || []
 
             setBoard({
               ...board,
@@ -303,16 +253,16 @@ export default function BoardPage() {
           return
         }
 
-        const card = sourceList.cards.find((c) => c.id === activeCardId)
-        const overCard = destinationList.cards.find((c) => c.id === overCardId)
+        const card = sourceList.cards?.find((c) => c.id === activeCardId)
+        const overCard = destinationList.cards?.find((c) => c.id === overCardId)
 
         if (card && overCard) {
           // Same list, reorder cards
           if (sourceList.id === destinationList.id) {
-            const oldIndex = sourceList.cards.findIndex((c) => c.id === activeCardId)
-            const newIndex = sourceList.cards.findIndex((c) => c.id === overCardId)
+            const oldIndex = sourceList.cards?.findIndex((c) => c.id === activeCardId) ?? -1
+            const newIndex = sourceList.cards?.findIndex((c) => c.id === overCardId) ?? -1
 
-            if (oldIndex !== -1 && newIndex !== -1) {
+            if (oldIndex !== -1 && newIndex !== -1 && sourceList.cards) {
               const newCards = arrayMove(sourceList.cards, oldIndex, newIndex)
 
               // Update positions
@@ -322,12 +272,13 @@ export default function BoardPage() {
               }))
 
               // Optimistically update UI
-              const newLists = board.lists.map((list) => {
-                if (list.id === sourceList.id) {
-                  return { ...list, cards: updatedCards }
-                }
-                return list
-              })
+              const newLists =
+                board.lists?.map((list) => {
+                  if (list.id === sourceList.id) {
+                    return { ...list, cards: updatedCards }
+                  }
+                  return list
+                }) || []
 
               setBoard({
                 ...board,
@@ -353,18 +304,18 @@ export default function BoardPage() {
             }
           } else {
             // Different list, move card to new list at specific position
-            const newIndex = destinationList.cards.findIndex((c) => c.id === overCardId)
+            const newIndex = destinationList.cards?.findIndex((c) => c.id === overCardId) ?? -1
 
             if (newIndex !== -1) {
               // Calculate new position
               const newPosition = overCard.position
 
               // Optimistically update UI
-              const newSourceCards = sourceList.cards.filter((c) => c.id !== activeCardId)
+              const newSourceCards = sourceList.cards?.filter((c) => c.id !== activeCardId) || []
 
               // Insert card at the right position and update all subsequent positions
-              const newDestCards = [...destinationList.cards]
-              newDestCards.splice(newIndex, 0, { ...card, listId: destinationList.id, position: newPosition })
+              const newDestCards = [...(destinationList.cards || [])]
+              newDestCards.splice(newIndex, 0, { ...card, list_id: destinationList.id, position: newPosition })
 
               // Update positions for all cards in the destination list
               const updatedDestCards = newDestCards.map((card, index) => ({
@@ -372,15 +323,16 @@ export default function BoardPage() {
                 position: index + 1,
               }))
 
-              const newLists = board.lists.map((list) => {
-                if (list.id === sourceList.id) {
-                  return { ...list, cards: newSourceCards }
-                }
-                if (list.id === destinationList.id) {
-                  return { ...list, cards: updatedDestCards }
-                }
-                return list
-              })
+              const newLists =
+                board.lists?.map((list) => {
+                  if (list.id === sourceList.id) {
+                    return { ...list, cards: newSourceCards }
+                  }
+                  if (list.id === destinationList.id) {
+                    return { ...list, cards: updatedDestCards }
+                  }
+                  return list
+                }) || []
 
               setBoard({
                 ...board,
@@ -446,7 +398,7 @@ export default function BoardPage() {
       // Update board state
       setBoard({
         ...board,
-        lists: [...board.lists, { ...newList, cards: [] }],
+        lists: [...(board.lists || []), { ...newList, cards: [] }],
       })
 
       setNewListName("")
@@ -460,9 +412,9 @@ export default function BoardPage() {
 
   const handleRemoveList = async (listId: number) => {
     if (!board) return
-
+    // console.log(listId, "listId")
     // Optimistically update UI
-    const newLists = board.lists.filter((list) => list.id !== listId)
+    const newLists = board.lists?.filter((list) => list.id !== listId) || []
 
     setBoard({
       ...board,
@@ -501,23 +453,24 @@ export default function BoardPage() {
       const newCard = await res.json()
 
       // Update board state
-      const newLists = board.lists.map((list) => {
-        if (list.id === listId) {
-          return {
-            ...list,
-            cards: [
-              ...list.cards,
-              {
-                ...newCard,
-                creator: board.creator, // Assuming current user is the creator
-                members: [],
-                labels: [],
-              },
-            ],
+      const newLists =
+        board.lists?.map((list) => {
+          if (list.id === listId) {
+            return {
+              ...list,
+              cards: [
+                ...(list.cards || []),
+                {
+                  ...newCard,
+                  creator: board.creator, // Assuming current user is the creator
+                  members: [],
+                  labels: [],
+                },
+              ],
+            }
           }
-        }
-        return list
-      })
+          return list
+        }) || []
 
       setBoard({
         ...board,
@@ -532,15 +485,16 @@ export default function BoardPage() {
     if (!board) return
 
     // Optimistically update UI
-    const newLists = board.lists.map((list) => {
-      if (list.id === listId) {
-        return {
-          ...list,
-          cards: list.cards.filter((card) => card.id !== cardId),
+    const newLists =
+      board.lists?.map((list) => {
+        if (list.id === listId) {
+          return {
+            ...list,
+            cards: list.cards?.filter((card) => card.id !== cardId) || [],
+          }
         }
-      }
-      return list
-    })
+        return list
+      }) || []
 
     setBoard({
       ...board,
@@ -562,29 +516,34 @@ export default function BoardPage() {
   const handleCardClick = (listId: number, cardId: number) => {
     if (!board) return
 
-    const list = board.lists.find((list) => list.id === listId)
+    const list = board.lists?.find((list) => list.id === listId)
     if (!list) return
 
-    const card = list.cards.find((card) => card.id === cardId)
+    const card = list.cards?.find((card) => card.id === cardId)
     if (!card) return
 
     setSelectedCard(card)
     setDialogOpen(true)
   }
 
-  const handleSaveCard = async (updatedCard: Card) => {
+  const handleSaveCard = async (updatedCard: CardType) => {
     if (!board) return
 
+    console.log(updatedCard, "updatedCard")
+    const list = board.lists
+    console.log(list, "list")
+
     // Optimistically update UI
-    const newLists = board.lists.map((list) => {
-      if (list.id === updatedCard.listId) {
-        return {
-          ...list,
-          cards: list.cards.map((card) => (card.id === updatedCard.id ? updatedCard : card)),
+    const newLists =
+      board.lists?.map((list) => {
+        if (list.id === updatedCard.list_id) {
+          return {
+            ...list,
+            cards: list.cards?.map((card) => (card.id === updatedCard.id ? updatedCard : card)) || [],
+          }
         }
-      }
-      return list
-    })
+        return list
+      }) || []
 
     setBoard({
       ...board,
@@ -601,9 +560,10 @@ export default function BoardPage() {
         body: JSON.stringify({
           title: updatedCard.title,
           description: updatedCard.description,
-          dueDate: updatedCard.dueDate,
+          due_date: updatedCard.due_date,
         }),
       })
+
     } catch (error) {
       console.error("Error updating card:", error)
       // Revert optimistic update on error
@@ -662,28 +622,6 @@ export default function BoardPage() {
     }
   }
 
-  const fetchBoardData = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(`/api/boards/${params.boardId}`)
-      if (!res.ok) {
-        if (res.status === 404) {
-          throw new Error("Board not found")
-        }
-        throw new Error("Failed to fetch board")
-      }
-      const data = await res.json()
-      setBoard(data)
-      setNewBoardName(data.name)
-    } catch (error) {
-      console.error("Error fetching board:", error)
-      setError(error instanceof Error ? error.message : "An error occurred")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const fetchBoard = async () => {
     setLoading(true)
     try {
@@ -707,12 +645,13 @@ export default function BoardPage() {
 
     return (
       <div className="transform scale-105 rotate-1 shadow-xl">
-        <CardType
+        <Card
+          key={card.id}
           id={`card-${card.id}`}
           title={card.title}
           description={card.description || ""}
-          members={card.members.map((cm) => cm.member)}
-          labels={card.labels.map((cl) => cl.label)}
+          members={card.members }
+          labels={card.labels }
           onRemove={() => {}}
           onClick={() => {}}
           isDragging={true}
@@ -752,28 +691,41 @@ export default function BoardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="p-4 bg-white shadow-sm">
+    <div className="min-h-screen ">
+      <div className="p-4 border-b shadow-sm">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => router.push("/boards")}>
-              <ArrowLeft className="h-4 w-4 mr-2" /> Boards
+              <ChevronLeft className="h-4 w-4 " /> Boards
             </Button>
             <h1 className="text-xl font-bold">{board.name}</h1>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setRenameBoardDialogOpen(true)}>Rename Board</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDeleteBoardDialogOpen(true)} className="text-red-500">
-                Delete Board
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div>
+            <Button asChild size="sm" className="mr-2">
+              <ModeToggle />
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => setRenameBoardDialogOpen(true)}
+                >
+                  Rename Board
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setDeleteBoardDialogOpen(true)}
+                  className="text-red-500"
+                >
+                  Delete Board
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
@@ -786,19 +738,29 @@ export default function BoardPage() {
         >
           <div className="flex overflow-x-auto pb-4 gap-4 min-h-[calc(100vh-150px)]">
             <SortableContext
-              items={board.lists.map((list) => `list-${list.id}`)}
+              items={(board.lists || []).map((list) => `list-${list.id}`)}
               strategy={horizontalListSortingStrategy}
             >
-              {board.lists.map((list) => (
-                <ListType
+              {(board.lists || []).map((list) => (
+                <List
                   key={`list-${list.id}`}
                   id={`list-${list.id}`}
                   title={list.name}
-                  cards={list.cards}
-                  onAddCard={(title : string) => handleAddCard(list.id, title)}
-                  onRemoveCard={(cardId : string) => handleRemoveCard(list.id, Number.parseInt(cardId.replace("card-", "")))}
+                  cards={list.cards || []}
+                  onAddCard={(title) => handleAddCard(list.id, title)}
+                  onRemoveCard={(cardId) =>
+                    handleRemoveCard(
+                      list.id,
+                      Number.parseInt(cardId.replace("card-", ""))
+                    )
+                  }
                   onRemoveList={() => handleRemoveList(list.id)}
-                  onCardClick={(cardId : string) => handleCardClick(list.id, Number.parseInt(cardId.replace("card-", "")))}
+                  onCardClick={(cardId) =>
+                    handleCardClick(
+                      list.id,
+                      Number.parseInt(cardId.replace("card-", ""))
+                    )
+                  }
                 />
               ))}
             </SortableContext>
@@ -813,7 +775,11 @@ export default function BoardPage() {
                   autoFocus
                 />
                 <div className="flex gap-2">
-                  <Button onClick={handleAddList} size="sm" disabled={addingList || !newListName.trim()}>
+                  <Button
+                    onClick={handleAddList}
+                    size="sm"
+                    disabled={addingList || !newListName.trim()}
+                  >
                     {addingList ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -827,8 +793,8 @@ export default function BoardPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setShowNewListInput(false)
-                      setNewListName("")
+                      setShowNewListInput(false);
+                      setNewListName("");
                     }}
                     disabled={addingList}
                   >
@@ -839,7 +805,7 @@ export default function BoardPage() {
             ) : (
               <Button
                 variant="outline"
-                className="min-w-[272px] justify-start bg-white/80 hover:bg-white h-fit"
+                className="min-w-[272px] justify-start"
                 onClick={() => setShowNewListInput(true)}
               >
                 <Plus className="h-4 w-4 mr-2" /> Add another list
@@ -852,15 +818,20 @@ export default function BoardPage() {
 
         {selectedCard && (
           <CardDialog
+            key={selectedCard.id}
             card={selectedCard}
             open={dialogOpen}
             onOpenChange={setDialogOpen}
             onSave={handleSaveCard}
-            boardMembers={board.members.map((bm) => bm.member)}
+            boardMembers={board.members || []}
+            boardId={params.boardId}
           />
         )}
 
-        <Dialog open={renameBoardDialogOpen} onOpenChange={setRenameBoardDialogOpen}>
+        <Dialog
+          open={renameBoardDialogOpen}
+          onOpenChange={setRenameBoardDialogOpen}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Rename Board</DialogTitle>
@@ -874,10 +845,17 @@ export default function BoardPage() {
               />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setRenameBoardDialogOpen(false)} disabled={renamingBoard}>
+              <Button
+                variant="outline"
+                onClick={() => setRenameBoardDialogOpen(false)}
+                disabled={renamingBoard}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleRenameBoard} disabled={renamingBoard || !newBoardName.trim()}>
+              <Button
+                onClick={handleRenameBoard}
+                disabled={renamingBoard || !newBoardName.trim()}
+              >
                 {renamingBoard ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -891,19 +869,33 @@ export default function BoardPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={deleteBoardDialogOpen} onOpenChange={setDeleteBoardDialogOpen}>
+        <Dialog
+          open={deleteBoardDialogOpen}
+          onOpenChange={setDeleteBoardDialogOpen}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete Board</DialogTitle>
             </DialogHeader>
             <div className="py-4">
-              <p>Are you sure you want to delete this board? This action cannot be undone.</p>
+              <p>
+                Are you sure you want to delete this board? This action cannot
+                be undone.
+              </p>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteBoardDialogOpen(false)} disabled={deletingBoard}>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteBoardDialogOpen(false)}
+                disabled={deletingBoard}
+              >
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleDeleteBoard} disabled={deletingBoard}>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteBoard}
+                disabled={deletingBoard}
+              >
                 {deletingBoard ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -918,5 +910,5 @@ export default function BoardPage() {
         </Dialog>
       </div>
     </div>
-  )
+  );
 }
