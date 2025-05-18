@@ -27,7 +27,7 @@ export async function GET(
     `);
 
     const workspace = workspaceResult.rows[0];
-      console.log("workspaceResult.rows", workspaceResult.rows);
+
     if (!workspace) {
       return new NextResponse("Workspace not found", { status: 404 });
     }

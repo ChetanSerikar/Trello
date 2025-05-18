@@ -29,8 +29,12 @@ import type { Board, Card as CardType } from "@/lib/types"
 import { useParams } from 'next/navigation'
 import { ModeToggle } from "@/components/ThemeToggle"
 import { cn } from "@/lib/utils"
+import { BoardMembers } from "@/components/board-members"
+import { currentUser } from "@/lib/auth"
+import { useUser } from "@clerk/nextjs"
 
 export default function BoardPage() {
+  const {  user, isLoaded } = useUser();
   const params = useParams<{ boardId: string}>()
   const router = useRouter()
   const [board, setBoard] = useState<Board | null>(null)
@@ -529,9 +533,7 @@ export default function BoardPage() {
   const handleSaveCard = async (updatedCard: CardType) => {
     if (!board) return
 
-    console.log(updatedCard, "updatedCard")
     const list = board.lists
-    console.log(list, "list")
 
     // Optimistically update UI
     const newLists =
@@ -660,7 +662,7 @@ export default function BoardPage() {
     )
   }
 
-  if (loading) {
+  if (loading || !isLoaded) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -700,7 +702,9 @@ export default function BoardPage() {
             </Button>
             <h1 className="text-xl font-bold">{board.name}</h1>
           </div>
-          <div>
+          <div className="flex items-center gap-4">
+             <BoardMembers boardId={board.id} created_by={board.created_by} isCreator={board.created_by === (user?.id || "")} />
+
             <Button asChild size="sm" className="mr-2">
               <ModeToggle />
             </Button>

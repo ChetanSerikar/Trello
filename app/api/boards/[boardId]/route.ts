@@ -70,7 +70,6 @@ export async function GET(req: Request, { params }: {params: Promise<{ boardId: 
         `);
         card.labels = labelsResult.rows;
 
-        console.log(card.labels , "card.labels");
 
         // For each card get members
         const membersResult = await db.execute(sql`
@@ -88,7 +87,6 @@ export async function GET(req: Request, { params }: {params: Promise<{ boardId: 
       JOIN board_members bm ON bm.member_id = u.id
       WHERE bm.board_id = ${boardId}
     `);
-    console.log(membersResult.rows , "membersResult.rows");
 
 
     board.workspace = { id: board.workspace_id, name: board.workspace_name };
