@@ -28,10 +28,10 @@ export interface Board {
 export interface List {
   id: number
   name: string
-  boardId: number
+  board_id: number
   position: number
-  createdAt: Date
-  updatedAt: Date
+  created_at: Date
+  updated_at: Date
   cards?: Card[]
 }
 

@@ -17,7 +17,6 @@ export async function GET() {
       ORDER BY "created_at" DESC
     `);
 
-    console.log("userWorkspacesResult.rows",  userWorkspacesResult.rows);
     
 
     return NextResponse.json(userWorkspacesResult.rows);

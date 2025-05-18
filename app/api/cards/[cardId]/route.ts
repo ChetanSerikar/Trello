@@ -46,7 +46,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ cardId: 
       return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    console.log(card, "card");
 
     return NextResponse.json(card);
   } catch (error) {
