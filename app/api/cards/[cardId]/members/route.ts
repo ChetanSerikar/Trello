@@ -59,9 +59,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ cardId:
       SELECT * FROM card_members
       WHERE card_id = ${cardId} AND member_id = ${memberId}
     `);
-    if (existingMember.rows[0]) {
-      return new NextResponse("Member already assigned to card", { status: 400 });
-    }
+
+    // if (existingMember.rows[0]) {
+    //   return new NextResponse("Member already assigned to card", { status: 400 });
+    // }
 
     const insertRes = await db.execute(sql`
       INSERT INTO card_members (card_id, member_id)

@@ -770,7 +770,7 @@ export default function BoardPage() {
             </SortableContext>
 
             {showNewListInput ? (
-              <div className="bg-white rounded-md shadow-sm p-3 min-w-[272px] h-fit">
+              <div className=" rounded-md border-2 shadow-sm p-3 min-w-[272px] h-fit">
                 <Input
                   value={newListName}
                   onChange={(e) => setNewListName(e.target.value)}

@@ -164,6 +164,15 @@ export async function DELETE(req: Request, { params }: { params:Promise<{ boardI
       WHERE board_id = ${boardId} AND member_id = ${memberId}
     `);
 
+    await db.execute(sql`
+      DELETE FROM card_members WHERE member_id = ${memberId} AND card_id IN (
+        SELECT cards.id FROM cards
+        JOIN lists ON cards.list_id = lists.id
+        JOIN boards ON lists.board_id = boards.id
+        WHERE boards.id = ${boardId}
+      )
+    `);
+
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("[BOARD_MEMBERS_DELETE]", error);
