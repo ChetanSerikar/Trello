@@ -10,7 +10,7 @@ import type { User, Label } from "@/lib/types"
 interface CardProps {
   id: string
   title: string
-  description: string
+  description?: string
   members?: (User | undefined)[] 
   labels?: (Label | undefined)[] 
   onRemove: () => void
@@ -21,7 +21,6 @@ interface CardProps {
 export function Card({
   id,
   title,
-  description,
   members = [],
   labels = [],
   onRemove,

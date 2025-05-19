@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { currentUserOrThrow } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { sql } from "drizzle-orm"; // for sql`` tagged template
-import { Card } from "@/lib/types";
+import { NextResponse } from "next/server";
+
 
 export async function GET(req: Request, { params }: {params: Promise<{ boardId: number }> }) {
   try {
-    let { boardId  } = await params
+    const { boardId  } = await params
     
     const user = await currentUserOrThrow()
 
@@ -50,8 +50,9 @@ export async function GET(req: Request, { params }: {params: Promise<{ boardId: 
     const listsResult = await db.execute(sql`
       SELECT * FROM lists WHERE board_id = ${boardId} ORDER BY position ASC
     `);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lists = listsResult.rows as { id: number; cards?: any[] }[];
 
-    const lists = listsResult.rows;
 
     // For each list get cards ordered by position
     for (const list of lists) {
@@ -106,7 +107,7 @@ export async function GET(req: Request, { params }: {params: Promise<{ boardId: 
 export async function PATCH(req: Request,  { params }: {params: Promise<{ boardId: number }> }) {
   try {
     const user = await currentUserOrThrow()
-     let { boardId  } = await params
+    const { boardId  } = await params
     const { name } = await req.json()
 
     if (isNaN(boardId)) {
@@ -124,7 +125,7 @@ export async function PATCH(req: Request,  { params }: {params: Promise<{ boardI
     if (boardResult.rows.length === 0) {
       return new NextResponse("Board not found", { status: 404 });
     }
-    const board = boardResult.rows[0];
+    // const board = boardResult.rows[0];
 
     // Check user access (creator or member)
     const accessResult = await db.execute(sql`
@@ -152,10 +153,10 @@ export async function PATCH(req: Request,  { params }: {params: Promise<{ boardI
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { boardId: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ boardId: number }> }) {
   try {
     const user = await currentUserOrThrow();
-    const boardId = Number.parseInt(params.boardId);
+     const { boardId  } = await params
 
     if (isNaN(boardId)) {
       return new NextResponse("Invalid board ID", { status: 400 });

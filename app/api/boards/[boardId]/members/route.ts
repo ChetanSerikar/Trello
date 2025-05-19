@@ -7,8 +7,8 @@ import { currentUserOrThrow } from "@/lib/auth";
 export async function GET(req: Request, { params }: { params:  Promise<{ boardId: string }> }) {
   try {
     const user = await currentUserOrThrow();
-    let { boardId : strBoardId  } = await params
-    let boardId = parseInt(strBoardId);
+    const { boardId : strBoardId  } = await params
+    const boardId = parseInt(strBoardId);
 
     if (isNaN(boardId)) {
       return new NextResponse("Invalid board ID", { status: 400 });
@@ -55,7 +55,7 @@ export async function GET(req: Request, { params }: { params:  Promise<{ boardId
 export async function POST(req: Request, { params }: { params:  Promise<{ boardId: number }> }) {
   try {
     const user = await currentUserOrThrow();
-    let { boardId } = await params
+    const { boardId } = await params
 
     const { memberId } = await req.json();
 
@@ -118,8 +118,8 @@ export async function POST(req: Request, { params }: { params:  Promise<{ boardI
 export async function DELETE(req: Request, { params }: { params:Promise<{ boardId: string }> }) {
   try {
     const user = await currentUserOrThrow();
-    let { boardId : strBoardId  } = await params
-    let boardId = parseInt(strBoardId);
+    const { boardId : strBoardId  } = await params
+    const boardId = parseInt(strBoardId);
     const { searchParams } = new URL(req.url);
     const memberId = searchParams.get("memberId");
 

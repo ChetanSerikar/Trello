@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     `)
 
     
-    const boardMemberResult = await db.execute(sql`
+    await db.execute(sql`
       INSERT INTO board_members (board_id, member_id)
       VALUES (${insertResult.rows[0].id}, ${user.id})
       RETURNING *

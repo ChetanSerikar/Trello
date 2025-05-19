@@ -55,7 +55,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ cardId:
       return new NextResponse("Member not found", { status: 404 });
     }
 
-    const existingMember = await db.execute(sql`
+     await db.execute(sql`
       SELECT * FROM card_members
       WHERE card_id = ${cardId} AND member_id = ${memberId}
     `);

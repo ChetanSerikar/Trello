@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ workspaceId: number }> }
 ) {
   try {
-    const user = await currentUserOrThrow();
+    // const user = await currentUserOrThrow();
     const { workspaceId } = await params;
 
     if (isNaN(workspaceId)) {
