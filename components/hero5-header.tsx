@@ -10,6 +10,7 @@ import {
     SignedIn,
     SignedOut,
     SignInButton,
+    SignUpButton,
     UserButton,
     
   } from '@clerk/nextjs'
@@ -112,9 +113,8 @@ export const HeroHeader = () => {
                     size="sm"
                     className={cn(isScrolled && "lg:hidden")}
                   >
-                    <Link href="#">
-                      <span>Sign Up</span>
-                    </Link>
+                    
+                      <SignUpButton>Sign Up</SignUpButton>
                   </Button>
                 </SignedOut>
                 
@@ -141,7 +141,7 @@ export const HeroHeader = () => {
                     size="sm"
                     className={cn(isScrolled ? "lg:inline-flex" : "hidden")}
                   >
-                    <Link href="#">
+                    <Link href="/boards">
                       <span>Get Started</span>
                     </Link>
                   </Button>

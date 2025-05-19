@@ -79,37 +79,50 @@
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+ --background: var(--color-zinc-950);
+--foreground: var(--color-white);
+
+--card: var(--color-zinc-950);
+--card-foreground: var(--color-white);
+
+--popover: var(--color-zinc-950);
+--popover-foreground: var(--color-white);
+
+--primary: var(--color-white);
+--primary-foreground: var(--color-zinc-950);
+
+--secondary: var(--color-zinc-800);
+--secondary-foreground: var(--color-white);
+
+--muted: var(--color-zinc-800);
+--muted-foreground: var(--color-zinc-400);
+
+--accent: var(--color-zinc-800);
+--accent-foreground: var(--color-white);
+
+--destructive: var(--color-red-600);
+--destructive-foreground: var(--color-white);
+
+--border: var(--color-zinc-800);
+--input: var(--color-zinc-800);
+--ring: var(--color-white);
+
+/* The following are retained from the second object since they don't exist in the first one */
+--chart-1: oklch(0.488 0.243 264.376);
+--chart-2: oklch(0.696 0.17 162.48);
+--chart-3: oklch(0.769 0.188 70.08);
+--chart-4: oklch(0.627 0.265 303.9);
+--chart-5: oklch(0.645 0.246 16.439);
+
+--sidebar: var(--color-zinc-950);
+--sidebar-foreground: var(--color-white);
+--sidebar-primary: oklch(0.488 0.243 264.376);
+--sidebar-primary-foreground: var(--color-white);
+--sidebar-accent: var(--color-zinc-800);
+--sidebar-accent-foreground: var(--color-white);
+--sidebar-border: oklch(1 0 0 / 10%);
+--sidebar-ring: var(--color-white);
+
 }
 
 @layer base {
