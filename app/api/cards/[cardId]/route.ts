@@ -16,14 +16,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ cardId: 
 
     const result = await db.execute(sql`
       SELECT c.*, l.board_id, u.name as creator_name
-      FROM cards c
+      FROM cards c, users u
       JOIN lists l ON c.list_id = l.id
-      LEFT JOIN users u ON u.id = c.created_by
-      LEFT JOIN card_members cm ON cm.id = u.id
+      LEFT JOIN card_members cm ON cm.member_id = u.id
       WHERE c.id = ${cardId}
     `);
 
     const card = result.rows?.[0];
+
+    console.log("cards",card);
 
     if (!card) {
       return new NextResponse("Card not found", { status: 404 });
