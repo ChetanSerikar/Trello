@@ -5,7 +5,7 @@ import { currentUserOrThrow } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const user = await currentUserOrThrow();
+    // const user = await currentUserOrThrow();
 
     // const userWorkspacesResult = await db.execute(sql`
     //   SELECT * FROM workspaces

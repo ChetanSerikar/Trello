@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { cards } from "@/lib/schema";
 import { currentUserOrThrow } from "@/lib/auth";
 import { sql } from "drizzle-orm";
 

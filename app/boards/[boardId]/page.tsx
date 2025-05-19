@@ -1,37 +1,35 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { BoardMembers } from "@/components/board-members"
+import { Card } from "@/components/card"
+import { CardDialog } from "@/components/card-dialog"
+import { List } from "@/components/list"
+import { ModeToggle } from "@/components/ThemeToggle"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import type { Board, Card as CardType } from "@/lib/types"
+import { useUser } from "@clerk/nextjs"
 import {
+  closestCorners,
   DndContext,
   DragOverlay,
-  closestCorners,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
+  DragStartEvent, DragEndEvent
 } from "@dnd-kit/core"
 import {
   arrayMove,
+  horizontalListSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates,
-  horizontalListSortingStrategy,
 } from "@dnd-kit/sortable"
-import { List } from "@/components/list"
-import { Card } from "@/components/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Plus, X, ArrowLeft, MoreHorizontal, Loader2, ChevronLeftCircle, ChevronLeft } from "lucide-react"
-import { CardDialog } from "@/components/card-dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import type { Board, Card as CardType } from "@/lib/types"
-import { useParams } from 'next/navigation'
-import { ModeToggle } from "@/components/ThemeToggle"
-import { cn } from "@/lib/utils"
-import { BoardMembers } from "@/components/board-members"
-import { currentUser } from "@/lib/auth"
-import { useUser } from "@clerk/nextjs"
+import { ArrowLeft, ChevronLeft, Loader2, MoreHorizontal, Plus, X } from "lucide-react"
+import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function BoardPage() {
   const {  user, isLoaded } = useUser();
@@ -42,7 +40,7 @@ export default function BoardPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [activeList, setActiveList] = useState<string | null>(null)
+  // const [activeList, setActiveList] = useState<string | null>(null)
 
   const [newListName, setNewListName] = useState("")
   const [showNewListInput, setShowNewListInput] = useState(false)
@@ -110,277 +108,474 @@ export default function BoardPage() {
   }
 
   // Handle drag start
-  const handleDragStart = (event: any) => {
-    const { active } = event
-    setActiveId(active.id)
+const handleDragStart = (event: DragStartEvent) => {
+  const { active } = event
+  const id = String(active.id) // Ensure it's a string
+  setActiveId(id)
 
-    // Find which list the card belongs to
-    if (active.id.startsWith("card-")) {
-      const list = findCardList(active.id)
-      if (list) {
-        setActiveList(`list-${list.id}`)
+  // Find which list the card belongs to
+  if (id.startsWith("card-")) {
+    const list = findCardList(id)
+    if (list) {
+      // setActiveList(`list-${list.id}`)
+    }
+  }
+}
+
+  // Handle drag end
+  // const handleDragEnd = async (event: DragEndEvent) => {
+  //   const { active, over } = event
+
+  //   if (!over || !board) {
+  //     setActiveId(null)
+  //     // setActiveList(null)
+  //     return
+  //   }
+
+  //   // Handle list reordering
+  //   if (active.id.startsWith("list-") && over.id.startsWith("list-") && active.id !== over.id) {
+  //     const activeListId = Number.parseInt(active.id.replace("list-", ""))
+  //     const overListId = Number.parseInt(over.id.replace("list-", ""))
+
+  //     const activeListIndex = board.lists?.findIndex((list) => list.id === activeListId) ?? -1
+  //     const overListIndex = board.lists?.findIndex((list) => list.id === overListId) ?? -1
+
+  //     if (activeListIndex !== -1 && overListIndex !== -1 && board.lists) {
+  //       const newLists = arrayMove(board.lists, activeListIndex, overListIndex)
+
+  //       // Update positions
+  //       const updatedLists = newLists.map((list, index) => ({
+  //         ...list,
+  //         position: index + 1,
+  //       }))
+
+  //       // Optimistically update UI
+  //       setBoard({
+  //         ...board,
+  //         lists: updatedLists,
+  //       })
+
+  //       // Update in database
+  //       try {
+  //         for (const list of updatedLists) {
+  //           await fetch(`/api/lists/${list.id}`, {
+  //             method: "PATCH",
+  //             headers: {
+  //               "Content-Type": "application/json",
+  //             },
+  //             body: JSON.stringify({ position: list.position }),
+  //           })
+  //         }
+  //       } catch (error) {
+  //         console.error("Error updating list positions:", error)
+  //         // Revert optimistic update on error
+  //         fetchBoard()
+  //       }
+  //     }
+  //   }
+
+  //   // Handle card movement
+  //   if (active.id.startsWith("card-") && (over.id.startsWith("list-") || over.id.startsWith("card-"))) {
+  //     const activeCardId = Number.parseInt(active.id.replace("card-", ""))
+  //     const sourceList = findCardList(active.id)
+
+  //     if (!sourceList) {
+  //       setActiveId(null)
+  //       // setActiveList(null)
+  //       return
+  //     }
+
+  //     // If dropping onto a list
+  //     if (over.id.startsWith("list-")) {
+  //       const destinationListId = Number.parseInt(over.id.replace("list-", ""))
+  //       const destinationList = board.lists?.find((list) => list.id === destinationListId)
+
+  //       if (destinationList && sourceList.id !== destinationList.id) {
+  //         // Calculate new position (at the end of the destination list)
+  //         const newPosition =
+  //           destinationList.cards && destinationList.cards.length > 0
+  //             ? Math.max(...destinationList.cards.map((c) => c.position)) + 1
+  //             : 1
+
+  //         // Find the card
+  //         const card = sourceList.cards?.find((c) => c.id === activeCardId)
+
+  //         if (card) {
+  //           // Optimistically update UI
+  //           const newSourceCards = sourceList.cards?.filter((c) => c.id !== activeCardId) || []
+  //           const newDestCards = [
+  //             ...(destinationList.cards || []),
+  //             { ...card, listId: destinationList.id, position: newPosition },
+  //           ]
+
+  //           const newLists =
+  //             board.lists?.map((list) => {
+  //               if (list.id === sourceList.id) {
+  //                 return { ...list, cards: newSourceCards }
+  //               }
+  //               if (list.id === destinationList.id) {
+  //                 return { ...list, cards: newDestCards }
+  //               }
+  //               return list
+  //             }) || []
+
+  //           setBoard({
+  //             ...board,
+  //             lists: newLists,
+  //           })
+
+  //           // Update in database
+  //           try {
+  //             await fetch(`/api/cards/${activeCardId}`, {
+  //               method: "PATCH",
+  //               headers: {
+  //                 "Content-Type": "application/json",
+  //               },
+  //               body: JSON.stringify({
+  //                 listId: destinationList.id,
+  //                 position: newPosition,
+  //               }),
+  //             })
+  //           } catch (error) {
+  //             console.error("Error moving card:", error)
+  //             // Revert optimistic update on error
+  //             fetchBoard()
+  //           }
+  //         }
+  //       }
+  //     }
+
+  //     // If dropping onto another card
+  //     if (over.id.startsWith("card-")) {
+  //       const overCardId = Number.parseInt(over.id.replace("card-", ""))
+  //       const destinationList = findCardList(over.id)
+
+  //       if (!destinationList) {
+  //         setActiveId(null)
+  //         // setActiveList(null)
+  //         return
+  //       }
+
+  //       const card = sourceList.cards?.find((c) => c.id === activeCardId)
+  //       const overCard = destinationList.cards?.find((c) => c.id === overCardId)
+
+  //       if (card && overCard) {
+  //         // Same list, reorder cards
+  //         if (sourceList.id === destinationList.id) {
+  //           const oldIndex = sourceList.cards?.findIndex((c) => c.id === activeCardId) ?? -1
+  //           const newIndex = sourceList.cards?.findIndex((c) => c.id === overCardId) ?? -1
+
+  //           if (oldIndex !== -1 && newIndex !== -1 && sourceList.cards) {
+  //             const newCards = arrayMove(sourceList.cards, oldIndex, newIndex)
+
+  //             // Update positions
+  //             const updatedCards = newCards.map((card, index) => ({
+  //               ...card,
+  //               position: index + 1,
+  //             }))
+
+  //             // Optimistically update UI
+  //             const newLists =
+  //               board.lists?.map((list) => {
+  //                 if (list.id === sourceList.id) {
+  //                   return { ...list, cards: updatedCards }
+  //                 }
+  //                 return list
+  //               }) || []
+
+  //             setBoard({
+  //               ...board,
+  //               lists: newLists,
+  //             })
+
+  //             // Update in database
+  //             try {
+  //               for (const card of updatedCards) {
+  //                 await fetch(`/api/cards/${card.id}`, {
+  //                   method: "PATCH",
+  //                   headers: {
+  //                     "Content-Type": "application/json",
+  //                   },
+  //                   body: JSON.stringify({ position: card.position }),
+  //                 })
+  //               }
+  //             } catch (error) {
+  //               console.error("Error updating card positions:", error)
+  //               // Revert optimistic update on error
+  //               fetchBoard()
+  //             }
+  //           }
+  //         } else {
+  //           // Different list, move card to new list at specific position
+  //           const newIndex = destinationList.cards?.findIndex((c) => c.id === overCardId) ?? -1
+
+  //           if (newIndex !== -1) {
+  //             // Calculate new position
+  //             const newPosition = overCard.position
+
+  //             // Optimistically update UI
+  //             const newSourceCards = sourceList.cards?.filter((c) => c.id !== activeCardId) || []
+
+  //             // Insert card at the right position and update all subsequent positions
+  //             const newDestCards = [...(destinationList.cards || [])]
+  //             newDestCards.splice(newIndex, 0, { ...card, list_id: destinationList.id, position: newPosition })
+
+  //             // Update positions for all cards in the destination list
+  //             const updatedDestCards = newDestCards.map((card, index) => ({
+  //               ...card,
+  //               position: index + 1,
+  //             }))
+
+  //             const newLists =
+  //               board.lists?.map((list) => {
+  //                 if (list.id === sourceList.id) {
+  //                   return { ...list, cards: newSourceCards }
+  //                 }
+  //                 if (list.id === destinationList.id) {
+  //                   return { ...list, cards: updatedDestCards }
+  //                 }
+  //                 return list
+  //               }) || []
+
+  //             setBoard({
+  //               ...board,
+  //               lists: newLists,
+  //             })
+
+  //             // Update in database
+  //             try {
+  //               // First update the moved card's list
+  //               await fetch(`/api/cards/${activeCardId}`, {
+  //                 method: "PATCH",
+  //                 headers: {
+  //                   "Content-Type": "application/json",
+  //                 },
+  //                 body: JSON.stringify({
+  //                   listId: destinationList.id,
+  //                   position: newPosition,
+  //                 }),
+  //               })
+
+  //               // Then update all positions in the destination list
+  //               for (const card of updatedDestCards) {
+  //                 await fetch(`/api/cards/${card.id}`, {
+  //                   method: "PATCH",
+  //                   headers: {
+  //                     "Content-Type": "application/json",
+  //                   },
+  //                   body: JSON.stringify({ position: card.position }),
+  //                 })
+  //               }
+  //             } catch (error) {
+  //               console.error("Error moving card between lists:", error)
+  //               // Revert optimistic update on error
+  //               fetchBoard()
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+
+  //   setActiveId(null)
+  //   // setActiveList(null)
+  // }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+  const { active, over } = event
+
+  if (!over || !board) {
+    setActiveId(null)
+    return
+  }
+
+  const activeId = String(active.id)
+  const overId = String(over.id)
+
+  // Handle list reordering
+  if (activeId.startsWith("list-") && overId.startsWith("list-") && activeId !== overId) {
+    const activeListId = Number.parseInt(activeId.replace("list-", ""))
+    const overListId = Number.parseInt(overId.replace("list-", ""))
+
+    const activeListIndex = board.lists?.findIndex((list) => list.id === activeListId) ?? -1
+    const overListIndex = board.lists?.findIndex((list) => list.id === overListId) ?? -1
+
+    if (activeListIndex !== -1 && overListIndex !== -1 && board.lists) {
+      const newLists = arrayMove(board.lists, activeListIndex, overListIndex)
+
+      const updatedLists = newLists.map((list, index) => ({
+        ...list,
+        position: index + 1,
+      }))
+
+      setBoard({ ...board, lists: updatedLists })
+
+      try {
+        for (const list of updatedLists) {
+          await fetch(`/api/lists/${list.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ position: list.position }),
+          })
+        }
+      } catch (error) {
+        console.error("Error updating list positions:", error)
+        fetchBoard()
       }
     }
   }
 
-  // Handle drag end
-  const handleDragEnd = async (event: any) => {
-    const { active, over } = event
+  // Handle card movement
+  if (activeId.startsWith("card-") && (overId.startsWith("list-") || overId.startsWith("card-"))) {
+    const activeCardId = Number.parseInt(activeId.replace("card-", ""))
+    const sourceList = findCardList(activeId)
 
-    if (!over || !board) {
+    if (!sourceList) {
       setActiveId(null)
-      setActiveList(null)
       return
     }
 
-    // Handle list reordering
-    if (active.id.startsWith("list-") && over.id.startsWith("list-") && active.id !== over.id) {
-      const activeListId = Number.parseInt(active.id.replace("list-", ""))
-      const overListId = Number.parseInt(over.id.replace("list-", ""))
+    // Dropping on a list
+    if (overId.startsWith("list-")) {
+      const destinationListId = Number.parseInt(overId.replace("list-", ""))
+      const destinationList = board.lists?.find((list) => list.id === destinationListId)
 
-      const activeListIndex = board.lists?.findIndex((list) => list.id === activeListId) ?? -1
-      const overListIndex = board.lists?.findIndex((list) => list.id === overListId) ?? -1
+      if (destinationList && sourceList.id !== destinationList.id) {
+        const newPosition =
+          destinationList.cards && destinationList.cards.length > 0
+            ? Math.max(...destinationList.cards.map((c) => c.position)) + 1
+            : 1
 
-      if (activeListIndex !== -1 && overListIndex !== -1 && board.lists) {
-        const newLists = arrayMove(board.lists, activeListIndex, overListIndex)
+        const card = sourceList.cards?.find((c) => c.id === activeCardId)
 
-        // Update positions
-        const updatedLists = newLists.map((list, index) => ({
-          ...list,
-          position: index + 1,
-        }))
+        if (card) {
+          const newSourceCards = sourceList.cards?.filter((c) => c.id !== activeCardId) || []
+          const newDestCards = [
+            ...(destinationList.cards || []),
+            { ...card, listId: destinationList.id, position: newPosition },
+          ]
 
-        // Optimistically update UI
-        setBoard({
-          ...board,
-          lists: updatedLists,
-        })
+          const newLists =
+            board.lists?.map((list) => {
+              if (list.id === sourceList.id) return { ...list, cards: newSourceCards }
+              if (list.id === destinationList.id) return { ...list, cards: newDestCards }
+              return list
+            }) || []
 
-        // Update in database
-        try {
-          for (const list of updatedLists) {
-            await fetch(`/api/lists/${list.id}`, {
+          setBoard({ ...board, lists: newLists })
+
+          try {
+            await fetch(`/api/cards/${activeCardId}`, {
               method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ position: list.position }),
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ listId: destinationList.id, position: newPosition }),
             })
+          } catch (error) {
+            console.error("Error moving card:", error)
+            fetchBoard()
           }
-        } catch (error) {
-          console.error("Error updating list positions:", error)
-          // Revert optimistic update on error
-          fetchBoard()
         }
       }
     }
 
-    // Handle card movement
-    if (active.id.startsWith("card-") && (over.id.startsWith("list-") || over.id.startsWith("card-"))) {
-      const activeCardId = Number.parseInt(active.id.replace("card-", ""))
-      const sourceList = findCardList(active.id)
+    // Dropping on another card
+    if (overId.startsWith("card-")) {
+      const overCardId = Number.parseInt(overId.replace("card-", ""))
+      const destinationList = findCardList(overId)
 
-      if (!sourceList) {
+      if (!destinationList) {
         setActiveId(null)
-        setActiveList(null)
         return
       }
 
-      // If dropping onto a list
-      if (over.id.startsWith("list-")) {
-        const destinationListId = Number.parseInt(over.id.replace("list-", ""))
-        const destinationList = board.lists?.find((list) => list.id === destinationListId)
+      const card = sourceList.cards?.find((c) => c.id === activeCardId)
+      const overCard = destinationList.cards?.find((c) => c.id === overCardId)
 
-        if (destinationList && sourceList.id !== destinationList.id) {
-          // Calculate new position (at the end of the destination list)
-          const newPosition =
-            destinationList.cards && destinationList.cards.length > 0
-              ? Math.max(...destinationList.cards.map((c) => c.position)) + 1
-              : 1
+      if (card && overCard) {
+        if (sourceList.id === destinationList.id) {
+          const oldIndex = sourceList.cards?.findIndex((c) => c.id === activeCardId) ?? -1
+          const newIndex = sourceList.cards?.findIndex((c) => c.id === overCardId) ?? -1
 
-          // Find the card
-          const card = sourceList.cards?.find((c) => c.id === activeCardId)
+          if (oldIndex !== -1 && newIndex !== -1 && sourceList.cards) {
+            const newCards = arrayMove(sourceList.cards, oldIndex, newIndex)
 
-          if (card) {
-            // Optimistically update UI
-            const newSourceCards = sourceList.cards?.filter((c) => c.id !== activeCardId) || []
-            const newDestCards = [
-              ...(destinationList.cards || []),
-              { ...card, listId: destinationList.id, position: newPosition },
-            ]
+            const updatedCards = newCards.map((card, index) => ({
+              ...card,
+              position: index + 1,
+            }))
 
             const newLists =
               board.lists?.map((list) => {
-                if (list.id === sourceList.id) {
-                  return { ...list, cards: newSourceCards }
-                }
-                if (list.id === destinationList.id) {
-                  return { ...list, cards: newDestCards }
-                }
+                if (list.id === sourceList.id) return { ...list, cards: updatedCards }
                 return list
               }) || []
 
-            setBoard({
-              ...board,
-              lists: newLists,
-            })
+            setBoard({ ...board, lists: newLists })
 
-            // Update in database
+            try {
+              for (const card of updatedCards) {
+                await fetch(`/api/cards/${card.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ position: card.position }),
+                })
+              }
+            } catch (error) {
+              console.error("Error updating card positions:", error)
+              fetchBoard()
+            }
+          }
+        } else {
+          const newIndex = destinationList.cards?.findIndex((c) => c.id === overCardId) ?? -1
+
+          if (newIndex !== -1) {
+            const newPosition = overCard.position
+            const newSourceCards = sourceList.cards?.filter((c) => c.id !== activeCardId) || []
+
+            const newDestCards = [...(destinationList.cards || [])]
+            newDestCards.splice(newIndex, 0, { ...card, list_id: destinationList.id, position: newPosition })
+
+            const updatedDestCards = newDestCards.map((card, index) => ({
+              ...card,
+              position: index + 1,
+            }))
+
+            const newLists =
+              board.lists?.map((list) => {
+                if (list.id === sourceList.id) return { ...list, cards: newSourceCards }
+                if (list.id === destinationList.id) return { ...list, cards: updatedDestCards }
+                return list
+              }) || []
+
+            setBoard({ ...board, lists: newLists })
+
             try {
               await fetch(`/api/cards/${activeCardId}`, {
                 method: "PATCH",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  listId: destinationList.id,
-                  position: newPosition,
-                }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ listId: destinationList.id, position: newPosition }),
               })
+
+              for (const card of updatedDestCards) {
+                await fetch(`/api/cards/${card.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ position: card.position }),
+                })
+              }
             } catch (error) {
-              console.error("Error moving card:", error)
-              // Revert optimistic update on error
+              console.error("Error moving card between lists:", error)
               fetchBoard()
             }
           }
         }
       }
-
-      // If dropping onto another card
-      if (over.id.startsWith("card-")) {
-        const overCardId = Number.parseInt(over.id.replace("card-", ""))
-        const destinationList = findCardList(over.id)
-
-        if (!destinationList) {
-          setActiveId(null)
-          setActiveList(null)
-          return
-        }
-
-        const card = sourceList.cards?.find((c) => c.id === activeCardId)
-        const overCard = destinationList.cards?.find((c) => c.id === overCardId)
-
-        if (card && overCard) {
-          // Same list, reorder cards
-          if (sourceList.id === destinationList.id) {
-            const oldIndex = sourceList.cards?.findIndex((c) => c.id === activeCardId) ?? -1
-            const newIndex = sourceList.cards?.findIndex((c) => c.id === overCardId) ?? -1
-
-            if (oldIndex !== -1 && newIndex !== -1 && sourceList.cards) {
-              const newCards = arrayMove(sourceList.cards, oldIndex, newIndex)
-
-              // Update positions
-              const updatedCards = newCards.map((card, index) => ({
-                ...card,
-                position: index + 1,
-              }))
-
-              // Optimistically update UI
-              const newLists =
-                board.lists?.map((list) => {
-                  if (list.id === sourceList.id) {
-                    return { ...list, cards: updatedCards }
-                  }
-                  return list
-                }) || []
-
-              setBoard({
-                ...board,
-                lists: newLists,
-              })
-
-              // Update in database
-              try {
-                for (const card of updatedCards) {
-                  await fetch(`/api/cards/${card.id}`, {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ position: card.position }),
-                  })
-                }
-              } catch (error) {
-                console.error("Error updating card positions:", error)
-                // Revert optimistic update on error
-                fetchBoard()
-              }
-            }
-          } else {
-            // Different list, move card to new list at specific position
-            const newIndex = destinationList.cards?.findIndex((c) => c.id === overCardId) ?? -1
-
-            if (newIndex !== -1) {
-              // Calculate new position
-              const newPosition = overCard.position
-
-              // Optimistically update UI
-              const newSourceCards = sourceList.cards?.filter((c) => c.id !== activeCardId) || []
-
-              // Insert card at the right position and update all subsequent positions
-              const newDestCards = [...(destinationList.cards || [])]
-              newDestCards.splice(newIndex, 0, { ...card, list_id: destinationList.id, position: newPosition })
-
-              // Update positions for all cards in the destination list
-              const updatedDestCards = newDestCards.map((card, index) => ({
-                ...card,
-                position: index + 1,
-              }))
-
-              const newLists =
-                board.lists?.map((list) => {
-                  if (list.id === sourceList.id) {
-                    return { ...list, cards: newSourceCards }
-                  }
-                  if (list.id === destinationList.id) {
-                    return { ...list, cards: updatedDestCards }
-                  }
-                  return list
-                }) || []
-
-              setBoard({
-                ...board,
-                lists: newLists,
-              })
-
-              // Update in database
-              try {
-                // First update the moved card's list
-                await fetch(`/api/cards/${activeCardId}`, {
-                  method: "PATCH",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    listId: destinationList.id,
-                    position: newPosition,
-                  }),
-                })
-
-                // Then update all positions in the destination list
-                for (const card of updatedDestCards) {
-                  await fetch(`/api/cards/${card.id}`, {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ position: card.position }),
-                  })
-                }
-              } catch (error) {
-                console.error("Error moving card between lists:", error)
-                // Revert optimistic update on error
-                fetchBoard()
-              }
-            }
-          }
-        }
-      }
     }
-
-    setActiveId(null)
-    setActiveList(null)
   }
+
+  setActiveId(null)
+}
+
 
   const handleAddList = async () => {
     if (!newListName.trim() || !board) return
@@ -533,7 +728,7 @@ export default function BoardPage() {
   const handleSaveCard = async (updatedCard: CardType) => {
     if (!board) return
 
-    const list = board.lists
+    // const list = board.lists
 
     // Optimistically update UI
     const newLists =

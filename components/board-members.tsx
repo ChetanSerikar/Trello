@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Plus, X } from "lucide-react"
+import { Loader2, Plus, X } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { User, BoardMember } from "@/lib/types"
@@ -24,7 +24,7 @@ export function BoardMembers({ boardId, isCreator , created_by }: BoardMembersPr
 
   useEffect(() => {
     fetchMembers()
-  }, [boardId])
+  }, [boardId ])
 
   const fetchMembers = async () => {
     setLoading(true)
@@ -97,6 +97,14 @@ export function BoardMembers({ boardId, isCreator , created_by }: BoardMembersPr
     } finally {
       setRemovingMemberId(null)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center ">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
 

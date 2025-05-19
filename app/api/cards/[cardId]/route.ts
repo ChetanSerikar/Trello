@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { cards, lists, boards, boardMembers } from "@/lib/schema"
 import { currentUserOrThrow } from "@/lib/auth"
-import { and, eq , sql } from "drizzle-orm"
+import { db } from "@/lib/db"
+import { sql } from "drizzle-orm"
+import { NextResponse } from "next/server"
 
 
 export async function GET(req: Request, { params }: { params: Promise<{ cardId: number }> }) {

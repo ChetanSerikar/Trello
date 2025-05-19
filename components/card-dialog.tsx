@@ -1,18 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { X, Plus, User, Tag, Calendar } from "lucide-react"
-import ReactMarkdown from "react-markdown"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import type { BoardMember, Card, Label } from "@/lib/types"
 import { format } from "date-fns"
-import type { Card, User as UserType, Label, CardMember, BoardMember } from "@/lib/types"
+import { Calendar, Plus, Tag, User, X } from "lucide-react"
+import { useEffect, useState } from "react"
+import ReactMarkdown from "react-markdown"
 
 interface CardDialogProps {
   card: Card | null
@@ -20,17 +20,19 @@ interface CardDialogProps {
   onOpenChange: (open: boolean) => void
   onSave: (card: Card) => void
   boardMembers:(BoardMember | undefined)[]
-  boardId: string
+  boardId?: string
 }
 
-export function CardDialog({ card, open, onOpenChange, onSave, boardMembers , boardId }: CardDialogProps) {
+export function CardDialog({ card, open, onOpenChange, onSave, boardMembers  }: CardDialogProps) {
   const [editedCard, setEditedCard] = useState<Card | null>(null)
   const [activeTab, setActiveTab] = useState("edit")
   const [availableLabels, setAvailableLabels] = useState<Label[]>([])
   const [newLabelName, setNewLabelName] = useState("")
   const [newLabelColor, setNewLabelColor] = useState("#3b82f6")
-  const [showLabelInput, setShowLabelInput] = useState(false)
-  const [date, setDate] = useState<Date | undefined>(undefined)
+
+  // const [showLabelInput, setShowLabelInput] = useState(false)
+
+  // const [date, setDate] = useState<Date | undefined>(undefined)
 
   // Available colors for labels
   const labelColors = [
@@ -48,11 +50,11 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers , bo
   useEffect(() => {
     if (card) {
       setEditedCard({ ...card })
-      if (card.due_date) {
-        setDate(new Date(card.due_date))
-      } else {
-        setDate(undefined)
-      }
+      // if (card.due_date) {
+      //   setDate(new Date(card.due_date))
+      // } else {
+      //   setDate(undefined)
+      // }
     }
   }, [card])
 
@@ -192,7 +194,7 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers , bo
       })
 
       setNewLabelName("")
-      setShowLabelInput(false)
+      // setShowLabelInput(false)
     } catch (error) {
       console.error("Error adding label:", error)
     }
@@ -253,7 +255,7 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers , bo
   }
 
   const handleDateChange = async (date: Date | undefined) => {
-    setDate(date)
+    // setDate(date)
 
     if (!editedCard) return
 

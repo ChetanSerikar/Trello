@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Users, Move, Sparkles, Settings2 } from "lucide-react";
+import { Move, Settings2, Users } from "lucide-react";
 import { ReactNode } from "react";
 
 export default function Features() {
