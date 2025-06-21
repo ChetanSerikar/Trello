@@ -111,7 +111,7 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 px-2 ">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Your Boards</h1>
         <Button onClick={() => setCreateDialogOpen(true)}>
