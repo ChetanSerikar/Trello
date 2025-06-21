@@ -888,12 +888,12 @@ const handleDragStart = (event: DragStartEvent) => {
   }
 
   return (
-    <div className="min-h-screen ">
-      <div className="p-4 border-b shadow-sm">
-        <div className="container mx-auto flex justify-between items-center">
+    <div className="min-h-screen px-2">
+      <div className=" px-2 py-4 md:p-4  border-b shadow-sm">
+        <div className="container mx-0 md:mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => router.push("/boards")}>
-              <ChevronLeft className="h-4 w-4 " /> Boards
+            <Button size={"icon"} variant="ghost" onClick={() => router.push("/boards")}>
+              <ChevronLeft className="h-4 w-4 " /> 
             </Button>
             <h1 className="text-xl font-bold">{board.name}</h1>
           </div>
