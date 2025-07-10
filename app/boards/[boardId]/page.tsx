@@ -19,7 +19,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragStartEvent, DragEndEvent
+  DragStartEvent, DragEndEvent,
+  TouchSensor
 } from "@dnd-kit/core"
 import {
   arrayMove,
@@ -88,6 +89,12 @@ export default function BoardPage() {
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
+    useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 150,
+      tolerance: 5,
+    },
+  })
   )
 
   // Find the active card and its list
