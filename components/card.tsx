@@ -47,7 +47,7 @@ export function Card({
     <CardUI
       ref={setNodeRef}
       style={style}
-      className={`p-3 border  gap-2 cursor-move group relative  mb-2 ${
+      className={`p-3 border  gap-2 cursor-move group relative  mb-2 touch-manipulation ${
         isDragging ? "shadow-lg" : "hover:shadow-md"
       } transition-shadow duration-200`}
       {...attributes}

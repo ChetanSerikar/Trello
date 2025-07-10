@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState ,useRef  } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
@@ -25,6 +25,8 @@ interface ListProps {
 export function List({ id, title, cards, onAddCard, onRemoveCard, onRemoveList, onCardClick }: ListProps) {
   const [newCardContent, setNewCardContent] = useState("")
   const [showNewCardInput, setShowNewCardInput] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -32,6 +34,26 @@ export function List({ id, title, cards, onAddCard, onRemoveCard, onRemoveList, 
       type: "list",
     },
   })
+
+useEffect(() => {
+    const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
+
+    if (!viewport) return
+
+    if (isDragging) {
+      // Stop scroll during drag
+      viewport.style.overflow = "hidden"
+      viewport.style.pointerEvents = "none"
+      viewport.style.touchAction = "none"
+    } else {
+      // Restore scroll
+      viewport.style.overflow = ""
+      viewport.style.pointerEvents = ""
+      viewport.style.touchAction = ""
+    }
+  }, [isDragging])
+
+
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -75,7 +97,7 @@ export function List({ id, title, cards, onAddCard, onRemoveCard, onRemoveList, 
         </DropdownMenu>
       </div>
 
-      <ScrollArea className="overflow-y max-h-[calc(100vh-200px)] min-h-[2px] mb-2 border-white-900 z-1 flex flex-col gap-2 px-2">
+      <ScrollArea ref={scrollRef} className="overflow-y max-h-[calc(100vh-200px)] min-h-[2px] mb-2 border-white-900 z-1 flex flex-col gap-2 px-2 touch-manipulation">
         
           {" "}
           {/* apply gap here */}
