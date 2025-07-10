@@ -19,12 +19,13 @@ export function BoardMembers({ boardId, isCreator , created_by }: BoardMembersPr
   const [members, setMembers] = useState<BoardMember[]>([])
   const [availableUsers, setAvailableUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingAvailable, setLoadingAvailable] = useState(true)
   const [addingMember, setAddingMember] = useState(false)
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchMembers()
-  }, [boardId ])
+  }, [boardId])
 
   const fetchMembers = async () => {
     setLoading(true)
@@ -41,6 +42,7 @@ export function BoardMembers({ boardId, isCreator , created_by }: BoardMembersPr
   }
 
   const fetchAvailableUsers = async () => {
+    setLoadingAvailable(true)
     try {
       const res = await fetch(`/api/boards/${boardId}/available-members`)
       if (!res.ok) throw new Error("Failed to fetch available users")
@@ -48,6 +50,8 @@ export function BoardMembers({ boardId, isCreator , created_by }: BoardMembersPr
       setAvailableUsers(data)
     } catch (error) {
       console.error("Error fetching available users:", error)
+    } finally {
+      setLoadingAvailable(false)
     }
   }
 
@@ -162,9 +166,16 @@ export function BoardMembers({ boardId, isCreator , created_by }: BoardMembersPr
               <h4 className="text-sm font-medium">Add members</h4>
             </div>
             <ScrollArea className="h-72 p-2">
-              {availableUsers.length > 0 ? (
+              {
+                loadingAvailable ? (
+                  <div className="flex justify-center items-center h-full">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : null
+              }
+              {availableUsers.length > 0  ? (
                 availableUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-2 hover:bg-slate-100 rounded-md">
+                  <Button variant={'ghost'} key={user.id} className="flex items-center justify-between p-2 w-full  rounded-md">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
                         <AvatarImage
@@ -184,7 +195,7 @@ export function BoardMembers({ boardId, isCreator , created_by }: BoardMembersPr
                       <Plus className="h-4 w-4" />
                       <span className="sr-only">Add</span>
                     </Button>
-                  </div>
+                  </Button>
                 ))
               ) : (
                 <div className="p-2 text-sm text-slate-500 text-center">No more users available to add</div>

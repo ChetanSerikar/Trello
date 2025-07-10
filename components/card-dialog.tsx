@@ -300,8 +300,8 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers  }: 
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <Dialog  open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto ">
         <DialogHeader>
            <DialogTitle className="sr-only">Card Title</DialogTitle>
           <Input
@@ -338,8 +338,8 @@ export function CardDialog({ card, open, onOpenChange, onSave, boardMembers  }: 
               <User className="h-4 w-4 mr-2" /> Members
             </h3>
             <div className="flex flex-wrap gap-2 mb-2">
-              {editedCard.members?.map((member) => (
-                <div key={member.id} className="flex items-center border rounded-full pl-1 pr-2 py-1">
+              {editedCard.members?.map((member , index) => (
+                <div key={index} className="flex items-center border rounded-full pl-1 pr-2 py-1">
                   <Avatar className="h-6 w-6 mr-1">
                     <AvatarImage
                       src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member?.name || "User")}&background=random`}

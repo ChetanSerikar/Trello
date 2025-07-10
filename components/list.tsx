@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Plus, X, MoreHorizontal, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Card as CardType } from "@/lib/types"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 interface ListProps {
   id: string
@@ -74,22 +75,32 @@ export function List({ id, title, cards, onAddCard, onRemoveCard, onRemoveList, 
         </DropdownMenu>
       </div>
 
-      <div className="flex flex-col gap-2 mb-2 min-h-[2px] overflow-y-auto max-h-[calc(100vh-200px)]">
-        <SortableContext items={cards.map((card) => `card-${card.id}`)} strategy={verticalListSortingStrategy}>
-          {cards.map((card) => (
-            <Card
-              key={`card-${card.id}`}
-              id={`card-${card.id}`}
-              title={card.title}
-              description={card.description || ""}
-              members={card.members || []}
-              labels={card.labels|| []}
-              onRemove={() => onRemoveCard(`card-${card.id}`)}
-              onClick={() => onCardClick(`card-${card.id}`)}
-            />
-          ))}
-        </SortableContext>
-      </div>
+      <ScrollArea className="overflow-y max-h-[calc(100vh-200px)] min-h-[2px] mb-2 border-white-900 z-1 flex flex-col gap-2 px-2">
+        
+          {" "}
+          {/* apply gap here */}
+          <SortableContext
+            items={cards.map((card) => `card-${card.id}`)}
+            strategy={verticalListSortingStrategy}
+
+          >
+            {cards.map((card) => (
+              <Card
+                key={`card-${card.id}`}
+                id={`card-${card.id}`}
+                title={card.title}
+                description={card.description || ""}
+                members={card.members || []}
+                labels={card.labels || []}
+                onRemove={() => onRemoveCard(`card-${card.id}`)}
+                onClick={() => onCardClick(`card-${card.id}`)}
+                
+              />
+            ))}
+          </SortableContext>
+
+        <ScrollBar orientation="vertical" />
+      </ScrollArea>
 
       {showNewCardInput ? (
         <div className="mt-2">

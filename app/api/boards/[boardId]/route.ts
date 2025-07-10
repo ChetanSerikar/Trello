@@ -74,7 +74,7 @@ export async function GET(req: Request, { params }: {params: Promise<{ boardId: 
 
         // For each card get members
         const membersResult = await db.execute(sql`
-          SELECT u.* FROM users u
+          SELECT DISTINCT u.* FROM users u
           JOIN card_members cm ON cm.member_id = u.id
           WHERE cm.card_id = ${card.id}
         `);

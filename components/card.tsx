@@ -47,7 +47,7 @@ export function Card({
     <CardUI
       ref={setNodeRef}
       style={style}
-      className={`p-3 border  gap-2 cursor-move group relative ${
+      className={`p-3 border  gap-2 cursor-move group relative  mb-2 ${
         isDragging ? "shadow-lg" : "hover:shadow-md"
       } transition-shadow duration-200`}
       {...attributes}
@@ -82,8 +82,8 @@ export function Card({
       {/* Members */}
       {members.length > 0 && (
         <div className="flex -space-x-2 mt-2">
-          {members.map((member) => (
-            <Avatar key={member?.id} className="h-6 w-6 border-2 border-white">
+          {members.map((member , index) => (
+            <Avatar key={index} className="h-6 w-6 border-2 border-white">
               <AvatarImage
                 src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member?.name || "User")}&background=random`}
               />
