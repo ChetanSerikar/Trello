@@ -77,10 +77,10 @@ export async function POST(req: Request) {
       RETURNING *
     `);
 
-    await db.execute(sql`
-      INSERT INTO card_members (card_id, member_id)
-      VALUES (${insertRes.rows[0].id}, ${user.id})
-    `);
+    // await db.execute(sql`
+    //   INSERT INTO card_members (card_id, member_id)
+    //   VALUES (${insertRes.rows[0].id}, ${user.id})
+    // `);
 
     const card = insertRes.rows[0];
     return NextResponse.json(card);
